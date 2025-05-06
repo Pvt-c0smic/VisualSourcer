@@ -1008,7 +1008,7 @@ export function MeetingForm({ meetingId }: MeetingFormProps = {}) {
       
       {/* AI Suggestion Dialog */}
       <Dialog open={showAiSuggestionDialog} onOpenChange={setShowAiSuggestionDialog}>
-        <DialogContent className="sm:max-w-[450px]">
+        <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <Sparkles className="h-5 w-5 mr-2 text-primary" />
@@ -1074,6 +1074,88 @@ export function MeetingForm({ meetingId }: MeetingFormProps = {}) {
                   ></div>
                 </div>
               </div>
+
+              {/* Alternative Times Section */}
+              {aiSuggestion.alternativeTimes && aiSuggestion.alternativeTimes.length > 0 && (
+                <div className="mt-4">
+                  <div className="flex items-center mb-2">
+                    <Clock className="h-4 w-4 mr-2 text-neutral-dark dark:text-neutral-light" />
+                    <h3 className="text-sm font-semibold">Alternative Times</h3>
+                  </div>
+                  <div className="space-y-2 max-h-[120px] overflow-y-auto pr-2">
+                    {aiSuggestion.alternativeTimes.map((alt, index) => (
+                      <div 
+                        key={index} 
+                        className="flex justify-between items-center p-2 bg-secondary/50 rounded-md text-sm hover:bg-secondary transition-colors"
+                        role="button"
+                        onClick={() => {
+                          // Create a new suggestion object with the alternative time
+                          const newSuggestion = {
+                            ...aiSuggestion,
+                            suggestedDate: alt.date,
+                            suggestedTime: alt.time,
+                            availableParticipants: alt.availableParticipants,
+                            // Preserve other properties
+                          };
+                          setAiSuggestion(newSuggestion);
+                        }}
+                      >
+                        <div>
+                          <span className="font-medium">
+                            {new Date(alt.date).toLocaleDateString('en-US', {
+                              weekday: 'short',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </span>
+                          <span className="mx-2">at</span>
+                          <span className="font-medium">{alt.time}</span>
+                        </div>
+                        <Badge variant="outline" className="ml-2 whitespace-nowrap">
+                          {alt.availableParticipants}/{aiSuggestion.totalParticipants} available
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Conflict Details Section */}
+              {aiSuggestion.conflictDetails && (
+                <div className="mt-4 border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 p-3 rounded-md">
+                  <div className="flex items-center mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 dark:text-amber-500 mr-2">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                      <line x1="12" y1="9" x2="12" y2="13"></line>
+                      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    <h3 className="text-sm font-semibold text-amber-800 dark:text-amber-400">Scheduling Conflicts</h3>
+                  </div>
+                  
+                  <div className="text-xs text-amber-700 dark:text-amber-300 mb-2">
+                    {aiSuggestion.conflictDetails.conflictResolutionSuggestion}
+                  </div>
+                  
+                  <div className="max-h-[120px] overflow-y-auto pr-1">
+                    <table className="w-full text-xs">
+                      <thead className="text-amber-800 dark:text-amber-400">
+                        <tr>
+                          <th className="text-left py-1">Participant</th>
+                          <th className="text-left py-1">Conflict</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-amber-700 dark:text-amber-300">
+                        {aiSuggestion.conflictDetails.conflictingParticipants.map((participant, index) => (
+                          <tr key={index} className="border-t border-amber-200/50 dark:border-amber-700/30">
+                            <td className="py-1">{participant.name}</td>
+                            <td className="py-1">{participant.conflictReason}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="py-8 text-center">

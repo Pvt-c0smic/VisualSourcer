@@ -270,6 +270,19 @@ export interface MeetingSuggestion {
   reason: string;
   availableParticipants: number;
   totalParticipants: number;
+  alternativeTimes?: Array<{
+    date: string;
+    time: string;
+    availableParticipants: number;
+  }>;
+  conflictDetails?: {
+    conflictingParticipants: Array<{
+      userId: number;
+      name: string;
+      conflictReason: string;
+    }>;
+    conflictResolutionSuggestion: string;
+  };
 }
 
 // API response types
