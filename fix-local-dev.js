@@ -18,6 +18,7 @@ export default defineConfig({
   plugins: [
     react(),
     runtimeErrorOverlay(),
+    // Cartographer and other Replit plugins are removed for local development
   ],
   resolve: {
     alias: {
