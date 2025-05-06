@@ -39,6 +39,11 @@ function Router() {
       <Route path="/skills-analytics" component={SkillsAnalytics} />
       <Route path="/profile" component={Profile} />
       
+      {/* Trainee specific routes */}
+      <Route path="/my-courses" component={TrainingPrograms} />
+      <Route path="/available-training" component={TrainingPrograms} />
+      <Route path="/my-certificates" component={Certificates} />
+      
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>

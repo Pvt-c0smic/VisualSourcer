@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { PlusCircle, Search, Download, Eye, Printer } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/lib/auth";
 import {
   Card,
   CardContent,
@@ -33,9 +34,25 @@ import {
 
 export default function Certificates() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [location] = useLocation();
+  const { user } = useAuth();
+  
+  // Determine if this is the "My Certificates" view
+  const isMyCertificates = location === "/my-certificates";
+
+  // Set page title and description based on route
+  const pageTitle = isMyCertificates ? "My Certificates" : "Certificates";
+  const pageDescription = isMyCertificates 
+    ? "View and download your achievement certificates" 
+    : "Generate and manage training certificates";
+
+  // Query for either all certificates or just user's certificates
+  const queryKey = isMyCertificates 
+    ? ["/api/certificates", { userId: user?.id }] 
+    : ["/api/certificates"];
 
   const { data: certificates = [] } = useQuery<Certificate[]>({
-    queryKey: ["/api/certificates"],
+    queryKey,
   });
 
   // Filter certificates based on search query
@@ -52,18 +69,20 @@ export default function Certificates() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-semibold text-neutral-darkest dark:text-white">
-              Certificates
+              {pageTitle}
             </h1>
             <p className="text-neutral-dark dark:text-neutral-light">
-              Generate and manage training certificates
+              {pageDescription}
             </p>
           </div>
-          <Link href="/create-certificate">
-            <Button className="inline-flex items-center">
-              <PlusCircle className="h-4 w-4 mr-2" />
-              New Certificate
-            </Button>
-          </Link>
+          {!isMyCertificates && (user?.role === "admin" || user?.role === "trainer") && (
+            <Link href="/create-certificate">
+              <Button className="inline-flex items-center">
+                <PlusCircle className="h-4 w-4 mr-2" />
+                New Certificate
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Search Bar */}
@@ -82,15 +101,23 @@ export default function Certificates() {
         <Tabs defaultValue="all" className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="all">All Certificates</TabsTrigger>
-            <TabsTrigger value="templates">Certificate Templates</TabsTrigger>
-            <TabsTrigger value="pending">Pending Approvals</TabsTrigger>
+            {!isMyCertificates && (user?.role === "admin" || user?.role === "trainer") && (
+              <>
+                <TabsTrigger value="templates">Certificate Templates</TabsTrigger>
+                <TabsTrigger value="pending">Pending Approvals</TabsTrigger>
+              </>
+            )}
           </TabsList>
           <TabsContent value="all">
             <Card>
               <CardHeader>
-                <CardTitle>Certificate Management</CardTitle>
+                <CardTitle>
+                  {isMyCertificates ? "Your Certificates" : "Certificate Management"}
+                </CardTitle>
                 <CardDescription>
-                  View, download and manage all training certificates
+                  {isMyCertificates 
+                    ? "View and download your earned certificates" 
+                    : "View, download and manage all training certificates"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -98,7 +125,7 @@ export default function Certificates() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Certificate</TableHead>
-                      <TableHead>Recipient</TableHead>
+                      {!isMyCertificates && <TableHead>Recipient</TableHead>}
                       <TableHead>Program</TableHead>
                       <TableHead>Issue Date</TableHead>
                       <TableHead>Expires</TableHead>
@@ -113,7 +140,7 @@ export default function Certificates() {
                           <TableCell className="font-medium">
                             {certificate.title}
                           </TableCell>
-                          <TableCell>{certificate.recipient}</TableCell>
+                          {!isMyCertificates && <TableCell>{certificate.recipient}</TableCell>}
                           <TableCell>{certificate.program}</TableCell>
                           <TableCell>{formatDate(certificate.issueDate)}</TableCell>
                           <TableCell>
@@ -152,7 +179,7 @@ export default function Certificates() {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-6">
+                        <TableCell colSpan={isMyCertificates ? 6 : 7} className="text-center py-6">
                           No certificates found
                         </TableCell>
                       </TableRow>
@@ -164,43 +191,49 @@ export default function Certificates() {
                 <div className="text-sm text-neutral-dark dark:text-neutral-light">
                   Showing {filteredCertificates.length} of {certificates.length} certificates
                 </div>
-                <div className="space-x-2">
-                  <Button variant="outline" size="sm">
-                    Previous
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    Next
-                  </Button>
-                </div>
+                {certificates.length > 10 && (
+                  <div className="space-x-2">
+                    <Button variant="outline" size="sm">
+                      Previous
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      Next
+                    </Button>
+                  </div>
+                )}
               </CardFooter>
             </Card>
           </TabsContent>
-          <TabsContent value="templates">
-            <Card>
-              <CardHeader>
-                <CardTitle>Certificate Templates</CardTitle>
-                <CardDescription>Manage certificate templates for different training programs</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-neutral-dark dark:text-neutral-light">
-                  Certificate templates coming soon
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="pending">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pending Approvals</CardTitle>
-                <CardDescription>Certificates waiting for approval before issuing</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-neutral-dark dark:text-neutral-light">
-                  No certificates pending approval
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+          {!isMyCertificates && (
+            <>
+              <TabsContent value="templates">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Certificate Templates</CardTitle>
+                    <CardDescription>Manage certificate templates for different training programs</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-8 text-neutral-dark dark:text-neutral-light">
+                      Certificate templates coming soon
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="pending">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Pending Approvals</CardTitle>
+                    <CardDescription>Certificates waiting for approval before issuing</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-8 text-neutral-dark dark:text-neutral-light">
+                      No certificates pending approval
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </>
+          )}
         </Tabs>
       </div>
     </MainLayout>
