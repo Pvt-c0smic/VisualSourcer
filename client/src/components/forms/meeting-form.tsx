@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -37,7 +37,14 @@ import {
   X, 
   Calendar as CalendarIconSolid,
   Info,
-  Sparkles
+  Sparkles,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  Circle,
+  CalendarX,
+  CalendarClock,
+  CalendarDays,
+  CalendarRange
 } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -492,6 +499,125 @@ export function MeetingForm({ meetingId }: MeetingFormProps = {}) {
                 </FormItem>
               )}
             />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="priority"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Priority</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select priority" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="High">
+                          <div className="flex items-center">
+                            <ArrowUpCircle className="mr-2 h-4 w-4 text-red-500" />
+                            <span>High</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="Normal">
+                          <div className="flex items-center">
+                            <Circle className="mr-2 h-4 w-4 text-blue-500" />
+                            <span>Normal</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="Low">
+                          <div className="flex items-center">
+                            <ArrowDownCircle className="mr-2 h-4 w-4 text-gray-500" />
+                            <span>Low</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Set the importance level of this meeting
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="recurrence"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Recurrence</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select recurrence pattern" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="None">
+                          <div className="flex items-center">
+                            <CalendarX className="mr-2 h-4 w-4" />
+                            <span>None</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="Daily">
+                          <div className="flex items-center">
+                            <CalendarClock className="mr-2 h-4 w-4" />
+                            <span>Daily</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="Weekly">
+                          <div className="flex items-center">
+                            <CalendarDays className="mr-2 h-4 w-4" />
+                            <span>Weekly</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="Monthly">
+                          <div className="flex items-center">
+                            <CalendarRange className="mr-2 h-4 w-4" />
+                            <span>Monthly</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      How frequently this meeting should recur
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <FormField
+              control={form.control}
+              name="requiredAttendance"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Required Attendance</FormLabel>
+                    <FormDescription>
+                      Make this meeting mandatory for all participants by default
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
           </CardContent>
         </Card>
 
@@ -837,40 +963,138 @@ export function MeetingForm({ meetingId }: MeetingFormProps = {}) {
               render={({ field }) => (
                 <FormItem>
                   {selectedParticipants.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-                      {selectedParticipants.map((participant) => (
-                        <div
-                          key={participant.id}
-                          className="flex items-center justify-between p-2 border rounded-md bg-secondary"
-                        >
-                          <div className="flex items-center">
-                            <Avatar className="h-6 w-6 mr-2">
-                              {participant.avatarUrl ? (
-                                <AvatarImage src={participant.avatarUrl} alt={participant.name} />
-                              ) : null}
-                              <AvatarFallback>
-                                {participant.name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm truncate max-w-[150px]">{participant.name}</span>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => handleRemoveParticipant(participant.id)}
+                    <div className="grid grid-cols-1 gap-2 mt-2">
+                      {selectedParticipants.map((participant) => {
+                        // Find participant settings if they exist
+                        const settings = form.getValues("participantSettings").find(
+                          (ps) => ps.userId === participant.id
+                        ) || {
+                          userId: participant.id,
+                          role: 'Attendee',
+                          requiredAttendance: form.getValues("requiredAttendance"),
+                        };
+                        
+                        // Add settings if they don't exist
+                        if (!form.getValues("participantSettings").some(ps => ps.userId === participant.id)) {
+                          const currentSettings = form.getValues("participantSettings");
+                          form.setValue("participantSettings", [...currentSettings, settings]);
+                        }
+                        
+                        return (
+                          <div
+                            key={participant.id}
+                            className="flex flex-col p-3 border rounded-md bg-secondary"
                           >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <Avatar className="h-6 w-6 mr-2">
+                                  {participant.avatarUrl ? (
+                                    <AvatarImage src={participant.avatarUrl} alt={participant.name} />
+                                  ) : null}
+                                  <AvatarFallback>
+                                    {participant.name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="font-medium text-sm">{participant.name}</span>
+                                {participant.rank && (
+                                  <span className="ml-2 text-xs text-muted-foreground">{participant.rank}</span>
+                                )}
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => handleRemoveParticipant(participant.id)}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t">
+                              <Select
+                                value={settings.role || 'Attendee'}
+                                onValueChange={(value) => {
+                                  const currentSettings = form.getValues("participantSettings");
+                                  const updatedSettings = currentSettings.map(ps => 
+                                    ps.userId === participant.id 
+                                      ? { ...ps, role: value } 
+                                      : ps
+                                  );
+                                  form.setValue("participantSettings", updatedSettings);
+                                }}
+                              >
+                                <SelectTrigger className="h-8 text-xs">
+                                  <SelectValue placeholder="Role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Organizer">Organizer</SelectItem>
+                                  <SelectItem value="Attendee">Attendee</SelectItem>
+                                  <SelectItem value="Presenter">Presenter</SelectItem>
+                                  <SelectItem value="Stakeholder">Stakeholder</SelectItem>
+                                  <SelectItem value="Observer">Observer</SelectItem>
+                                  <SelectItem value="Subject Matter Expert">SME</SelectItem>
+                                  <SelectItem value="Trainee">Trainee</SelectItem>
+                                  <SelectItem value="Trainer">Trainer</SelectItem>
+                                  <SelectItem value="Optional">Optional</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`required-${participant.id}`}
+                                  checked={settings.requiredAttendance}
+                                  onCheckedChange={(checked) => {
+                                    const currentSettings = form.getValues("participantSettings");
+                                    const updatedSettings = currentSettings.map(ps => 
+                                      ps.userId === participant.id 
+                                        ? { ...ps, requiredAttendance: !!checked } 
+                                        : ps
+                                    );
+                                    form.setValue("participantSettings", updatedSettings);
+                                  }}
+                                />
+                                <Label 
+                                  htmlFor={`required-${participant.id}`} 
+                                  className="text-xs cursor-pointer"
+                                >
+                                  Required attendance
+                                </Label>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
-                    <div className="text-sm text-neutral-dark dark:text-neutral-light mt-2">
+                    <div className="text-sm text-muted-foreground mt-2">
                       No participants selected. Click "Add Participants" to invite people.
                     </div>
                   )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="tags"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tags</FormLabel>
+                  <FormDescription>
+                    Add keywords to categorize this meeting (comma-separated)
+                  </FormDescription>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g. security, training, planning"
+                      value={field.value.join(', ')}
+                      onChange={(e) => {
+                        const tags = e.target.value.split(',').map(tag => tag.trim()).filter(Boolean);
+                        field.onChange(tags);
+                      }}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
