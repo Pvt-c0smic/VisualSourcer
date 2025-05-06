@@ -1,107 +1,89 @@
-# Local Development Instructions
+# Local Development Setup
 
-The project is configured to work optimally in the Replit environment, but you can run it locally by following these steps:
+This guide will help you set up the application for local development.
 
-## Setup for Local Development
+## Windows-Specific Instructions
 
-1. First, run the configuration fix script:
+If you're developing on Windows, follow the instructions in [WINDOWS_DEVELOPMENT.md](./WINDOWS_DEVELOPMENT.md).
 
-```bash
-node fix-local-dev.js
-```
+## General Setup
 
-This will modify the vite.config.ts file to be compatible with your local environment by replacing `import.meta.dirname` with `__dirname`.
+1. Ensure you have Node.js v16+ and npm installed.
 
-> **Important**: Due to the project using ES Modules (type: "module" in package.json), you'll need to use the `.mjs` extension for the scripts to identify them as ES modules.
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-```bash
-# Rename the scripts to use .mjs extension
-mv fix-local-dev.js fix-local-dev.mjs
-mv restore-config.js restore-config.mjs
+3. Set up a PostgreSQL database and configure the connection string:
+   ```bash
+   # Linux/Mac
+   export DATABASE_URL=postgresql://username:password@localhost:5432/databasename
+   
+   # Windows CMD
+   set DATABASE_URL=postgresql://username:password@localhost:5432/databasename
+   
+   # Windows PowerShell
+   $env:DATABASE_URL = "postgresql://username:password@localhost:5432/databasename"
+   ```
 
-# Run with node
-node fix-local-dev.mjs
-```
+4. (Optional) For AI features, set your OpenAI API Key:
+   ```bash
+   # Linux/Mac
+   export OPENAI_API_KEY=your_api_key_here
+   
+   # Windows CMD
+   set OPENAI_API_KEY=your_api_key_here
+   
+   # Windows PowerShell
+   $env:OPENAI_API_KEY = "your_api_key_here"
+   ```
 
-2. Start the server:
+5. If you encounter any path resolution or module import issues, use the fix-local-dev.js script:
+   ```bash
+   node fix-local-dev.js
+   ```
+   This will create a version of the server/vite.ts file that's compatible with local development.
 
-```bash
-npm run dev
-```
+6. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
-3. When you're done with local development and want to restore the original Replit configuration:
+7. Access the application at http://localhost:5000 (or port 3000 on Windows after running fix-windows-port.mjs)
 
-```bash
-node restore-config.mjs
-```
+## Resetting Changes for Replit Deployment
 
-## Recommended package.json Scripts for Local Development
-
-If you want to make these commands easier to run, you can manually add these scripts to your local package.json:
-
-```json
-"scripts": {
-  "dev:local": "node fix-local-dev.mjs && tsx server/index.ts",
-  "dev:restore": "node restore-config.mjs"
-}
-```
-
-Then you can simply run:
-
-```bash
-npm run dev:local
-```
-
-And to restore:
-
-```bash
-npm run dev:restore
-```
-
-## OpenAI Integration
-
-The application has been configured to work with or without an OpenAI API key:
-
-- With a valid API key: Full AI features will be available
-- Without an API key: Fallback mechanisms will provide reasonable functionality
-
-If you want to use the OpenAI features locally, set the OPENAI_API_KEY environment variable:
+Before pushing your changes back to Replit, make sure to restore any configuration files you modified for local development:
 
 ```bash
-# On Windows
-set OPENAI_API_KEY=your_api_key_here
+node restore-config.js # If you ran fix-local-dev.js
 
-# On macOS/Linux
-export OPENAI_API_KEY=your_api_key_here
+# Windows-specific restore commands
+node restore-windows-vite.mjs # If you ran fix-windows-vite.mjs
+node restore-windows-port.mjs # If you ran fix-windows-port.mjs
+node restore-windows.mjs # If you ran fix-windows.mjs
 ```
 
-## Database Connection
+## Database Operations
 
-For local development, make sure you have a PostgreSQL database running and set the DATABASE_URL environment variable accordingly.
+- Push schema changes to the database:
+  ```bash
+  npm run db:push
+  ```
 
-```bash
-# On Windows
-set DATABASE_URL=postgresql://username:password@localhost:5432/databasename
+- Seed the database with sample data:
+  ```bash
+  npm run db:seed
+  ```
 
-# On macOS/Linux
-export DATABASE_URL=postgresql://username:password@localhost:5432/databasename
-```
+## Troubleshooting
 
-## Additional Utilities for Local Development
+If you encounter any module resolution or import issues, try:
 
-When developing locally, you might find it helpful to install a few additional packages to make development smoother:
+1. Check if there are any path-related errors in the console
+2. Run the appropriate fix scripts for your environment
+3. Ensure your Node.js version is compatible (v16+)
+4. Verify that all dependencies are installed correctly
 
-```bash
-npm install --save-dev cross-env
-```
-
-Then you can add these scripts to your package.json:
-
-```json
-"scripts": {
-  "dev:local:win": "cross-env NODE_ENV=development node fix-local-dev.mjs && tsx server/index.ts",
-  "dev:local:unix": "NODE_ENV=development node fix-local-dev.mjs && tsx server/index.ts"
-}
-```
-
-This will help with environment variable handling across different operating systems.
+For Windows-specific issues, refer to the Windows development guide.
