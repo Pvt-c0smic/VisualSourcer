@@ -89,8 +89,27 @@ const meetingFormSchema = z.object({
     required_error: "Please select a meeting type",
   }),
   participants: z.array(z.number()).min(1, "Please select at least one participant"),
+  participantSettings: z.array(z.object({
+    userId: z.number(),
+    role: z.enum([
+      'Organizer', 
+      'Attendee', 
+      'Presenter', 
+      'Stakeholder', 
+      'Observer', 
+      'Subject Matter Expert', 
+      'Trainee', 
+      'Trainer', 
+      'Optional'
+    ]).optional().default('Attendee'),
+    requiredAttendance: z.boolean().optional().default(true),
+  })).optional().default([]),
   agenda: z.array(z.string()).optional(),
   notes: z.string().optional(),
+  priority: z.enum(['High', 'Normal', 'Low']).optional().default('Normal'),
+  recurrence: z.enum(['None', 'Daily', 'Weekly', 'Monthly']).optional().default('None'),
+  tags: z.array(z.string()).optional().default([]),
+  requiredAttendance: z.boolean().optional().default(true),
 })
 .refine(
   (data) => data.endTime > data.startTime,
@@ -142,14 +161,26 @@ export function MeetingForm({ meetingId }: MeetingFormProps = {}) {
       location: "",
       type: "Face-to-Face",
       participants: [],
+      participantSettings: [],
       agenda: [],
       notes: "",
+      priority: "Normal",
+      recurrence: "None",
+      tags: [],
+      requiredAttendance: true,
     },
   });
 
   // Set form values when meeting data is loaded (for editing)
   React.useEffect(() => {
     if (meeting && meetingId) {
+      // Create participant settings from meeting participants
+      const participantSettings = meeting.participants.map(participant => ({
+        userId: participant.id,
+        role: 'Attendee' as const,
+        requiredAttendance: meeting.requiredAttendance ?? true,
+      }));
+      
       form.reset({
         title: meeting.title,
         description: meeting.description || "",
@@ -158,8 +189,13 @@ export function MeetingForm({ meetingId }: MeetingFormProps = {}) {
         location: meeting.location || "",
         type: meeting.type as "VTC" | "Face-to-Face",
         participants: meeting.participants.map(p => p.id),
+        participantSettings,
         agenda: meeting.agenda || [],
         notes: meeting.notes || "",
+        priority: meeting.priority || "Normal",
+        recurrence: meeting.recurrence || "None",
+        tags: meeting.tags || [],
+        requiredAttendance: meeting.requiredAttendance ?? true,
       });
       setAgenda(meeting.agenda || []);
       setSelectedParticipants(meeting.participants);
@@ -225,13 +261,25 @@ export function MeetingForm({ meetingId }: MeetingFormProps = {}) {
 
   // AI suggestion mutation
   const getAiSuggestionMutation = useMutation({
-    mutationFn: async ({ participantIds, meetingPurpose }: { participantIds: number[], meetingPurpose: string }) => {
+    mutationFn: async ({ 
+      participantIds, 
+      meetingPurpose, 
+      priority, 
+      participantSettings 
+    }: { 
+      participantIds: number[], 
+      meetingPurpose: string,
+      priority?: string, 
+      participantSettings?: Array<{ userId: number, requiredAttendance: boolean }>
+    }) => {
       setIsLoadingAiSuggestion(true);
       try {
         const response = await apiRequest("POST", "/api/meetings/suggest-time", {
           participantIds,
           meetingPurpose,
           durationMinutes: 60, // Default to 1 hour meeting
+          priority,
+          participantSettings,
         });
         const data = await response.json();
         setIsLoadingAiSuggestion(false);
@@ -321,6 +369,9 @@ export function MeetingForm({ meetingId }: MeetingFormProps = {}) {
   function handleGetAiSuggestion() {
     const participants = form.getValues("participants") || [];
     const title = form.getValues("title") || "";
+    const priority = form.getValues("priority");
+    const requiredAttendance = form.getValues("requiredAttendance");
+    const participantSettings = form.getValues("participantSettings");
     
     if (participants.length === 0) {
       toast({
@@ -331,9 +382,19 @@ export function MeetingForm({ meetingId }: MeetingFormProps = {}) {
       return;
     }
     
+    // Create participant settings if not already set
+    const settings = participantSettings.length > 0 
+      ? participantSettings
+      : participants.map(id => ({
+          userId: id,
+          requiredAttendance: requiredAttendance || true,
+        }));
+    
     getAiSuggestionMutation.mutate({
       participantIds: participants,
       meetingPurpose: title,
+      priority,
+      participantSettings: settings,
     });
   }
 
