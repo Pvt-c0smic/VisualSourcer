@@ -1,0 +1,37 @@
+User@DESKTOP-QOBLJMO MINGW64 /d/Personal/JLU/Capstone/masters/VisualSourcer (main)
+$ npm run dev
+
+> rest-express@1.0.0 dev
+> tsx server/index.ts
+
+OpenAI API initialized successfully
+OpenAI API initialized successfully in analytics controller
+1:39:05 AM [express] serving on port 3000
+TypeError [ERR_INVALID_ARG_TYPE]: The "paths[0]" argument must be of type string. Received undefined
+    at __node_internal_captureLargerStackTrace (node:internal/errors:497:5)
+    at new NodeError (node:internal/errors:406:5)
+    at validateString (node:internal/validators:162:11)
+    at Object.resolve (node:path:171:9)
+    at <anonymous> (d:\Personal\JLU\Capstone\masters\VisualSourcer\server\vite.ts:48:35)
+    at Layer.handle [as handle_request] (D:\Personal\JLU\Capstone\masters\VisualSourcer\node_modules\express\lib\router\layer.js:95:5)
+    at trim_prefix (D:\Personal\JLU\Capstone\masters\VisualSourcer\node_modules\express\lib\router\index.js:328:13)
+    at D:\Personal\JLU\Capstone\masters\VisualSourcer\node_modules\express\lib\router\index.js:286:9
+    at param (D:\Personal\JLU\Capstone\masters\VisualSourcer\node_modules\express\lib\router\index.js:365:14)
+    at param (D:\Personal\JLU\Capstone\masters\VisualSourcer\node_modules\express\lib\router\index.js:376:14)
+    at Function.process_params (D:\Personal\JLU\Capstone\masters\VisualSourcer\node_modules\express\lib\router\index.js:421:3)
+    at Immediate.next [as _onImmediate] (D:\Personal\JLU\Capstone\masters\VisualSourcer\node_modules\express\lib\router\index.js:280:10)
+    at process.processImmediate (node:internal/timers:480:21)
+TypeError [ERR_INVALID_ARG_TYPE]: The "paths[0]" argument must be of type string. Received undefined
+    at __node_internal_captureLargerStackTrace (node:internal/errors:497:5)
+    at new NodeError (node:internal/errors:406:5)
+    at validateString (node:internal/validators:162:11)
+    at Object.resolve (node:path:171:9)
+    at <anonymous> (d:\Personal\JLU\Capstone\masters\VisualSourcer\server\vite.ts:48:35)
+    at Layer.handle [as handle_request] (D:\Personal\JLU\Capstone\masters\VisualSourcer\node_modules\express\lib\router\layer.js:95:5)
+    at trim_prefix (D:\Personal\JLU\Capstone\masters\VisualSourcer\node_modules\express\lib\router\index.js:328:13)
+    at D:\Personal\JLU\Capstone\masters\VisualSourcer\node_modules\express\lib\router\index.js:286:9
+    at param (D:\Personal\JLU\Capstone\masters\VisualSourcer\node_modules\express\lib\router\index.js:365:14)
+    at param (D:\Personal\JLU\Capstone\masters\VisualSourcer\node_modules\express\lib\router\index.js:376:14)
+    at Function.process_params (D:\Personal\JLU\Capstone\masters\VisualSourcer\node_modules\express\lib\router\index.js:421:3)
+    at Immediate.next [as _onImmediate] (D:\Personal\JLU\Capstone\masters\VisualSourcer\node_modules\express\lib\router\index.js:280:10)
+    at process.processImmediate (node:internal/timers:480:21)
