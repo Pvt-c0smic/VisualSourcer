@@ -42,6 +42,40 @@ export const storage = {
       where: eq(users.id, userId)
     });
   },
+  
+  getUserByUsername: async (username: string) => {
+    return await db.query.users.findFirst({
+      where: eq(users.username, username)
+    });
+  },
+  
+  getUserByEmail: async (email: string) => {
+    return await db.query.users.findFirst({
+      where: eq(users.email, email)
+    });
+  },
+  
+  createUser: async (userData: any) => {
+    const [newUser] = await db.insert(users)
+      .values(userData)
+      .returning();
+    return newUser;
+  },
+  
+  updateUser: async (userId: number, updateData: any) => {
+    const [updatedUser] = await db.update(users)
+      .set({
+        ...updateData,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return updatedUser;
+  },
+  
+  getAllUsers: async () => {
+    return await db.query.users.findMany();
+  },
 
   // Program functions
   getProgramById: async (programId: number) => {
