@@ -10,6 +10,7 @@ import { Loader2, Save, UserCircle, Award, Calendar, Shield, Users } from "lucid
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import SkillSetsSelect from "@/components/forms/skillsets-select";
+import UserForm from "@/components/forms/user-form";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ProfilePage() {
@@ -203,9 +204,10 @@ export default function ProfilePage() {
         {/* Right Column - Tabs */}
         <div className="md:col-span-2">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-2">
+            <TabsList className="grid grid-cols-3">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="skillsets">Skill Sets</TabsTrigger>
+              <TabsTrigger value="personal">Personal Info</TabsTrigger>
             </TabsList>
             
             {/* Overview Tab */}
@@ -379,6 +381,11 @@ export default function ProfilePage() {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Personal Information Tab */}
+            <TabsContent value="personal" className="mt-6">
+              <UserForm user={currentUser} isProfile={true} />
             </TabsContent>
           </Tabs>
         </div>
