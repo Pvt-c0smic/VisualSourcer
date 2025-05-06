@@ -39,9 +39,9 @@ If you're developing on Windows, follow the instructions in [WINDOWS_DEVELOPMENT
    $env:OPENAI_API_KEY = "your_api_key_here"
    ```
 
-5. If you encounter any path resolution or module import issues, use the fix-local-dev.js script:
+5. If you encounter any path resolution or module import issues, use the fix-local-dev.mjs script:
    ```bash
-   node fix-local-dev.js
+   node fix-local-dev.mjs
    ```
    This will create a version of the server/vite.ts file that's compatible with local development.
 
@@ -57,7 +57,7 @@ If you're developing on Windows, follow the instructions in [WINDOWS_DEVELOPMENT
 Before pushing your changes back to Replit, make sure to restore any configuration files you modified for local development:
 
 ```bash
-node restore-config.js # If you ran fix-local-dev.js
+node restore-config.mjs # If you ran fix-local-dev.mjs
 
 # Windows-specific restore commands
 node restore-windows-vite.mjs # If you ran fix-windows-vite.mjs
