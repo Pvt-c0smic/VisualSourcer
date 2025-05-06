@@ -14,28 +14,28 @@ fs.writeFileSync('./vite.config.ts.backup', originalConfig, 'utf8');
 const localConfig = `import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
-import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+import { fileURLToPath } from 'url';
 
-// Use __dirname for local development
-const projectRoot = __dirname;
+// Get current filename and directory using ESM compatible approach
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export default defineConfig({
   plugins: [
     react(),
-    runtimeErrorOverlay(),
-    // Cartographer and other Replit plugins are removed for local development
+    // Replit plugins are removed for local development
   ],
   resolve: {
     alias: {
-      "@db": path.resolve(projectRoot, "db"),
-      "@": path.resolve(projectRoot, "client", "src"),
-      "@shared": path.resolve(projectRoot, "shared"),
-      "@assets": path.resolve(projectRoot, "attached_assets"),
+      "@db": path.resolve(__dirname, "db"),
+      "@": path.resolve(__dirname, "client", "src"),
+      "@shared": path.resolve(__dirname, "shared"),
+      "@assets": path.resolve(__dirname, "attached_assets"),
     },
   },
-  root: path.resolve(projectRoot, "client"),
+  root: path.resolve(__dirname, "client"),
   build: {
-    outDir: path.resolve(projectRoot, "dist/public"),
+    outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
   },
 });`;
