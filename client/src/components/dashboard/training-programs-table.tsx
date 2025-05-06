@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Program } from "@shared/types";
 import { cn, formatDate } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
 import {
   Table,
   TableBody,
@@ -17,24 +18,92 @@ import {
   Users,
   Edit,
   Trash,
+  PlusCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+
+interface FilterProps {
+  enrolledOnly?: boolean;
+  notEnrolled?: boolean;
+  userId?: number;
+  status?: string;
+}
 
 interface TrainingProgramsTableProps {
   className?: string;
   limit?: number;
+  filter?: FilterProps;
+  searchQuery?: string;
+  categoryFilter?: string;
+  statusFilter?: string;
 }
 
 export function TrainingProgramsTable({
   className,
   limit,
+  filter = {},
+  searchQuery = "",
+  categoryFilter = "all",
+  statusFilter = "all",
 }: TrainingProgramsTableProps) {
+  const { user } = useAuth();
   const { data: programs = [] } = useQuery<Program[]>({
     queryKey: ["/api/programs"],
   });
 
+  // Apply filters
+  let filteredPrograms = [...programs];
+  
+  // Filter based on search query
+  if (searchQuery) {
+    filteredPrograms = filteredPrograms.filter(program => 
+      program.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      program.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      program.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }
+  
+  // Filter based on category
+  if (categoryFilter && categoryFilter !== "all") {
+    filteredPrograms = filteredPrograms.filter(program => 
+      program.skillSetCategory.toLowerCase() === categoryFilter.toLowerCase()
+    );
+  }
+  
+  // Filter based on status
+  if (statusFilter && statusFilter !== "all") {
+    filteredPrograms = filteredPrograms.filter(program => 
+      program.status.toLowerCase() === statusFilter.toLowerCase()
+    );
+  }
+  
+  // Apply special filters for My Courses / Available Training
+  if (filter.enrolledOnly && filter.userId) {
+    // This is a simplified filter - in a real app, we would query for enrolled programs
+    filteredPrograms = filteredPrograms.filter(program => 
+      // Simulate enrollment - in real app, this would check enrollments table
+      program.enrolledCount > 0 && program.id % 2 === 0
+    );
+  }
+  
+  if (filter.notEnrolled && filter.userId) {
+    // This is a simplified filter - in a real app, we would query for not enrolled programs
+    if (filter.status) {
+      filteredPrograms = filteredPrograms.filter(program => 
+        program.status.toLowerCase() === filter.status.toLowerCase() &&
+        // Simulate not enrolled - in real app, this would check enrollments table
+        program.id % 2 === 1
+      );
+    } else {
+      filteredPrograms = filteredPrograms.filter(program => 
+        // Simulate not enrolled - in real app, this would check enrollments table
+        program.id % 2 === 1
+      );
+    }
+  }
+
   // Limit the number of programs if specified
-  const displayedPrograms = limit ? programs.slice(0, limit) : programs;
+  const displayedPrograms = limit ? filteredPrograms.slice(0, limit) : filteredPrograms;
 
   const getProgramIcon = (category: string) => {
     switch (category.toLowerCase()) {
@@ -186,18 +255,44 @@ export function TrainingProgramsTable({
                   {getStatusBadge(program.status)}
                 </TableCell>
                 <TableCell className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <Link href={`/program/${program.id}/edit`}>
-                    <a className="text-primary hover:text-primary-dark dark:text-primary-light mr-3">
-                      <Edit className="h-4 w-4" />
-                    </a>
-                  </Link>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive hover:text-destructive/90 h-8 w-8"
-                  >
-                    <Trash className="h-4 w-4" />
-                  </Button>
+                  {filter.enrolledOnly ? (
+                    // My Courses view - show view details button
+                    <Link href={`/program/${program.id}`}>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="h-8"
+                      >
+                        View Course
+                      </Button>
+                    </Link>
+                  ) : filter.notEnrolled ? (
+                    // Available Training view - show enroll button
+                    <Button 
+                      variant="default" 
+                      size="sm"
+                      className="h-8"
+                    >
+                      <PlusCircle className="h-4 w-4 mr-1" />
+                      Enroll
+                    </Button>
+                  ) : (
+                    // Admin/Trainer view - show edit and delete buttons
+                    <>
+                      <Link href={`/program/${program.id}/edit`}>
+                        <a className="text-primary hover:text-primary-dark dark:text-primary-light mr-3">
+                          <Edit className="h-4 w-4" />
+                        </a>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive/90 h-8 w-8"
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

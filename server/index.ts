@@ -58,7 +58,9 @@ app.use((req, res, next) => {
 
   // For local Windows development, use a higher port number to avoid permission issues
   // In Replit, always use port 5000
-  const port = process.platform === 'win32' ? 3000 : 5000;
+  const isWindows = process.platform === 'win32' || process.env.OS === 'Windows_NT';
+  console.log(`Running on ${process.platform}, isWindows: ${isWindows}`);
+  const port = isWindows ? 3000 : 5000;
   server.listen({
     port,
     host: "0.0.0.0",
