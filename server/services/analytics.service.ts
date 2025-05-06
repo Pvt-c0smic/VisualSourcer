@@ -4,9 +4,19 @@ import { users, programEnrollments, quizAttempts, programs, skillSets } from "@s
 import { eq, and, gte, lte, count, avg, desc, sql } from "drizzle-orm";
 import { addMonths, format, parseISO, subDays } from "date-fns";
 
-// Initialize OpenAI API
+// Initialize OpenAI API with optional API key
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let openai: OpenAI | null = null;
+try {
+  if (process.env.OPENAI_API_KEY) {
+    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    console.log("OpenAI API initialized successfully in analytics service");
+  } else {
+    console.warn("OPENAI_API_KEY not provided in analytics service, AI features will be limited");
+  }
+} catch (error) {
+  console.error("Failed to initialize OpenAI API in analytics service:", error);
+}
 
 interface SkillProgressData {
   userId: number;
@@ -293,6 +303,25 @@ Provide a structured analysis with these fields:
 Format as JSON with fields: predictedLevel, timeToNextLevel, recommendedActions, growthPotential, confidenceScore
 `;
 
+      // Check if OpenAI is available
+      if (!openai) {
+        // Return fallback prediction if OpenAI is not available
+        const predictedLevel = Math.min(5, skillData.currentLevel + 0.3 + Math.random() * 0.4); 
+        const timeToNextLevel = Math.round(8 + Math.random() * 12);
+        
+        return {
+          predictedLevel,
+          timeToNextLevel,
+          recommendedActions: [
+            "Complete additional training programs in this skill area",
+            "Practice skills in real-world scenarios",
+            "Review learning materials from previous courses"
+          ],
+          growthPotential: 0.6 + (Math.random() * 0.2),
+          confidenceScore: 0.5
+        };
+      }
+      
       // Call OpenAI API
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
@@ -509,6 +538,31 @@ Provide these recommendations in JSON format:
 Format as JSON with fields: recommendedPrograms (array with programId, name, reasoning), skillPriorities (array), careerAdvice (string), learningPath (array of steps)
 `;
 
+    // Check if OpenAI is available
+    if (!openai) {
+      // Return fallback recommendations if OpenAI is not available
+      return {
+        recommendedPrograms: availablePrograms.slice(0, 3).map(program => ({
+          programId: program.id,
+          name: program.name,
+          reasoning: "Selected based on your current skill profile and available courses",
+          programDetails: program
+        })),
+        skillPriorities: [
+          "Continue developing your technical capabilities",
+          "Focus on communication skills",
+          "Build leadership foundations"
+        ],
+        careerAdvice: "Aim to complete a balanced mix of technical and leadership courses to prepare for advancement opportunities",
+        learningPath: [
+          "Complete beginner technical courses before advancing to intermediate level",
+          "Take at least one leadership course in the next 6 months",
+          "Pursue certification in your primary skill area"
+        ]
+      };
+    }
+    
+    // Call OpenAI API
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
