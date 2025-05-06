@@ -164,6 +164,120 @@ export async function sendNewTrainingNotification(
   }
 }
 
+// Send program enrollment notification to trainee
+export async function sendProgramEnrollmentNotification(
+  to: string,
+  traineeName: string,
+  programName: string,
+  programCode: string,
+  startDate: Date,
+  duration: string,
+  location: string,
+  trainerName: string
+): Promise<boolean> {
+  try {
+    // Validate SMTP config
+    const isValid = await validateSMTPConfig();
+    if (!isValid) return false;
+    
+    // Format date for display
+    const formattedStartDate = format(startDate, "MMMM d, yyyy");
+    
+    // Send email
+    const mailOptions = {
+      from: `"TrainNET" <${fromEmail}>`,
+      to,
+      subject: `Enrollment Confirmation: ${programName} (${programCode})`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #0078d4; padding: 20px; color: white;">
+            <h2 style="margin: 0;">Training Enrollment Confirmation</h2>
+          </div>
+          <div style="padding: 20px; border: 1px solid #ddd; border-top: none;">
+            <p>Dear ${traineeName},</p>
+            <p>You have been enrolled in the following training program:</p>
+            <h3 style="color: #0078d4;">${programName} (${programCode})</h3>
+            <p><strong>Start Date:</strong> ${formattedStartDate}</p>
+            <p><strong>Duration:</strong> ${duration}</p>
+            <p><strong>Location:</strong> ${location}</p>
+            <p><strong>Trainer:</strong> ${trainerName}</p>
+            <p>Please review the program details and ensure you meet all prerequisites before the start date.</p>
+            <div style="margin-top: 20px; text-align: center;">
+              <a href="#" style="display: inline-block; padding: 10px 20px; background-color: #0078d4; color: white; text-decoration: none; border-radius: 4px;">View Program Details</a>
+            </div>
+          </div>
+          <div style="padding: 10px; text-align: center; font-size: 12px; color: #666;">
+            <p>This is an automated message from the TrainNET system.</p>
+          </div>
+        </div>
+      `
+    };
+    
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error("Error sending program enrollment notification:", error);
+    return false;
+  }
+}
+
+// Send trainer assignment notification
+export async function sendTrainerAssignmentNotification(
+  to: string,
+  trainerName: string,
+  programName: string,
+  programCode: string,
+  startDate: Date,
+  duration: string,
+  location: string,
+  enrollmentCount: number
+): Promise<boolean> {
+  try {
+    // Validate SMTP config
+    const isValid = await validateSMTPConfig();
+    if (!isValid) return false;
+    
+    // Format date for display
+    const formattedStartDate = format(startDate, "MMMM d, yyyy");
+    
+    // Send email
+    const mailOptions = {
+      from: `"TrainNET" <${fromEmail}>`,
+      to,
+      subject: `Trainer Assignment: ${programName} (${programCode})`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #0078d4; padding: 20px; color: white;">
+            <h2 style="margin: 0;">Trainer Assignment</h2>
+          </div>
+          <div style="padding: 20px; border: 1px solid #ddd; border-top: none;">
+            <p>Dear ${trainerName},</p>
+            <p>You have been assigned as the trainer for the following program:</p>
+            <h3 style="color: #0078d4;">${programName} (${programCode})</h3>
+            <p><strong>Start Date:</strong> ${formattedStartDate}</p>
+            <p><strong>Duration:</strong> ${duration}</p>
+            <p><strong>Location:</strong> ${location}</p>
+            <p><strong>Current Enrollment:</strong> ${enrollmentCount} trainees</p>
+            <p>Please review the program details and prepare the necessary materials. You can access the trainee list and manage the program from your dashboard.</p>
+            <div style="margin-top: 20px; text-align: center;">
+              <a href="#" style="display: inline-block; padding: 10px 20px; background-color: #0078d4; color: white; text-decoration: none; border-radius: 4px;">Manage Program</a>
+            </div>
+          </div>
+          <div style="padding: 10px; text-align: center; font-size: 12px; color: #666;">
+            <p>This is an automated message from the TrainNET system.</p>
+          </div>
+        </div>
+      `
+    };
+    
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error("Error sending trainer assignment notification:", error);
+    return false;
+  }
+}
+
 // Send certificate notification
 export async function sendCertificateNotification(
   to: string,

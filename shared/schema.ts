@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, date, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, date, jsonb, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -83,6 +83,7 @@ export const programModules = pgTable("program_modules", {
   title: text("title").notNull(),
   description: text("description"),
   content: text("content"),
+  type: text("type").notNull().default("lecture"), // lecture, quiz, assignment, resource
   order: integer("order").notNull(),
   estimatedDuration: text("estimated_duration"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -277,6 +278,136 @@ export const meetingParticipantsRelations = relations(meetingParticipants, ({ on
   }),
   user: one(users, {
     fields: [meetingParticipants.userId],
+    references: [users.id],
+  }),
+}));
+
+// Quizzes Table
+export const quizzes = pgTable("quizzes", {
+  id: serial("id").primaryKey(),
+  moduleId: integer("module_id").references(() => programModules.id).notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  timeLimit: integer("time_limit"), // in minutes
+  passingScore: integer("passing_score").default(70), // percentage
+  randomizeQuestions: boolean("randomize_questions").default(false),
+  createdById: integer("created_by_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const quizzesRelations = relations(quizzes, ({ one, many }) => ({
+  module: one(programModules, {
+    fields: [quizzes.moduleId],
+    references: [programModules.id],
+  }),
+  creator: one(users, {
+    fields: [quizzes.createdById],
+    references: [users.id],
+  }),
+  questions: many(quizQuestions),
+  attempts: many(quizAttempts),
+}));
+
+// Quiz Questions Table
+export const quizQuestions = pgTable("quiz_questions", {
+  id: serial("id").primaryKey(),
+  quizId: integer("quiz_id").references(() => quizzes.id).notNull(),
+  questionText: text("question_text").notNull(),
+  questionType: text("question_type").notNull(), // multiple-choice, true-false, short-answer, essay
+  options: jsonb("options").default([]), // Array of options for multiple-choice questions
+  correctAnswer: text("correct_answer"), // For objective questions
+  points: integer("points").default(1),
+  order: integer("order").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const quizQuestionsRelations = relations(quizQuestions, ({ one, many }) => ({
+  quiz: one(quizzes, {
+    fields: [quizQuestions.quizId],
+    references: [quizzes.id],
+  }),
+  responses: many(quizResponses),
+}));
+
+// Quiz Attempts Table
+export const quizAttempts = pgTable("quiz_attempts", {
+  id: serial("id").primaryKey(),
+  quizId: integer("quiz_id").references(() => quizzes.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  startTime: timestamp("start_time").defaultNow().notNull(),
+  endTime: timestamp("end_time"),
+  score: integer("score"),
+  maxPossibleScore: integer("max_possible_score"),
+  percentageScore: decimal("percentage_score", { precision: 5, scale: 2 }),
+  passed: boolean("passed"),
+  reviewedBy: integer("reviewed_by").references(() => users.id),
+  reviewDate: timestamp("review_date"),
+  feedback: text("feedback"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const quizAttemptsRelations = relations(quizAttempts, ({ one, many }) => ({
+  quiz: one(quizzes, {
+    fields: [quizAttempts.quizId],
+    references: [quizzes.id],
+  }),
+  user: one(users, {
+    fields: [quizAttempts.userId],
+    references: [users.id],
+  }),
+  reviewer: one(users, {
+    fields: [quizAttempts.reviewedBy],
+    references: [users.id],
+  }),
+  responses: many(quizResponses),
+}));
+
+// Quiz Responses Table
+export const quizResponses = pgTable("quiz_responses", {
+  id: serial("id").primaryKey(),
+  attemptId: integer("attempt_id").references(() => quizAttempts.id).notNull(),
+  questionId: integer("question_id").references(() => quizQuestions.id).notNull(),
+  userAnswer: text("user_answer"),
+  isCorrect: boolean("is_correct"),
+  points: integer("points").default(0),
+  feedback: text("feedback"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const quizResponsesRelations = relations(quizResponses, ({ one }) => ({
+  attempt: one(quizAttempts, {
+    fields: [quizResponses.attemptId],
+    references: [quizAttempts.id],
+  }),
+  question: one(quizQuestions, {
+    fields: [quizResponses.questionId],
+    references: [quizQuestions.id],
+  }),
+}));
+
+// Lectures Table
+export const lectures = pgTable("lectures", {
+  id: serial("id").primaryKey(),
+  moduleId: integer("module_id").references(() => programModules.id).notNull(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  attachments: jsonb("attachments").default([]), // Array of attachment URLs
+  createdById: integer("created_by_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const lecturesRelations = relations(lectures, ({ one }) => ({
+  module: one(programModules, {
+    fields: [lectures.moduleId],
+    references: [programModules.id],
+  }),
+  creator: one(users, {
+    fields: [lectures.createdById],
     references: [users.id],
   }),
 }));

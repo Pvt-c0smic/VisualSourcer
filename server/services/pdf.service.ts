@@ -10,6 +10,8 @@ interface CertificateOptions {
   issueDate: string;
   expiryDate: string | null;
   outputPath: string;
+  leftLogoUrl?: string;
+  rightLogoUrl?: string;
 }
 
 export async function generateCertificate(options: CertificateOptions): Promise<string> {
@@ -50,7 +52,9 @@ export async function generateCertificate(options: CertificateOptions): Promise<
     .replace(/\${programName}/g, programName)
     .replace(/\${certificateNumber}/g, certificateNumber)
     .replace(/\${issueDate}/g, formattedIssueDate)
-    .replace(/\${expiryDate}/g, formattedExpiryDate);
+    .replace(/\${expiryDate}/g, formattedExpiryDate)
+    .replace(/\${leftLogoUrl}/g, options.leftLogoUrl || '')
+    .replace(/\${rightLogoUrl}/g, options.rightLogoUrl || '');
 
   // Launch puppeteer
   const browser = await puppeteer.launch({
@@ -133,6 +137,27 @@ export const defaultCertificateTemplate = `
       margin-bottom: 20px;
     }
     
+    .logos {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .logo {
+      width: 100px;
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .logo img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    
     .title {
       font-size: 36px;
       font-weight: bold;
@@ -140,6 +165,8 @@ export const defaultCertificateTemplate = `
       margin-bottom: 10px;
       text-transform: uppercase;
       letter-spacing: 2px;
+      flex-grow: 1;
+      text-align: center;
     }
     
     .subtitle {
@@ -221,7 +248,15 @@ export const defaultCertificateTemplate = `
 <body>
   <div class="certificate">
     <div class="header">
-      <div class="title">Certificate of Completion</div>
+      <div class="logos">
+        <div class="logo logo-left">
+          \${leftLogoUrl ? '<img src="' + leftLogoUrl + '" alt="Organization Logo" width="100" />' : ''}
+        </div>
+        <div class="title">Certificate of Completion</div>
+        <div class="logo logo-right">
+          \${rightLogoUrl ? '<img src="' + rightLogoUrl + '" alt="Partner Logo" width="100" />' : ''}
+        </div>
+      </div>
       <div class="subtitle">This certifies that</div>
     </div>
     
