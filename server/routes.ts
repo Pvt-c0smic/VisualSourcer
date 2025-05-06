@@ -16,6 +16,7 @@ import * as certificatesController from "./controllers/certificates.controller";
 import * as schedulesController from "./controllers/schedules.controller";
 import * as usersController from "./controllers/users.controller";
 import * as skillsetsController from "./controllers/skillsets.controller";
+import * as analyticsController from "./controllers/analytics.controller";
 
 // Middleware
 import { isAuthenticated, isAdmin, isTrainer } from "./middleware/auth";
@@ -107,6 +108,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.get("/skillsets/categories", isAuthenticated, skillsetsController.getSkillSetCategories);
   apiRouter.get("/skillsets/:id", isAuthenticated, skillsetsController.getSkillSetById);
   apiRouter.put("/users/:id/skillsets", isAuthenticated, skillsetsController.updateUserSkillSets);
+  
+  // Analytics routes
+  apiRouter.get("/analytics/enrollment", isAuthenticated, analyticsController.getEnrollmentStats);
+  apiRouter.get("/analytics/organization", isAdmin, analyticsController.getOrgAnalytics);
+  apiRouter.get("/analytics/users/:userId/skill-progress", isAuthenticated, analyticsController.getSkillProgress);
+  apiRouter.get("/analytics/users/:userId/skill-predictions", isAuthenticated, analyticsController.getSkillPredictions);
+  apiRouter.get("/analytics/users/:userId/skill-gaps", isAuthenticated, analyticsController.getSkillGapAnalysis);
+  apiRouter.get("/analytics/users/:userId/recommendations", isAuthenticated, analyticsController.getPersonalizedRecommendations);
 
   // Dashboard routes
   apiRouter.get("/dashboard/stats", isAuthenticated, async (req, res) => {
