@@ -10,7 +10,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
-  role: text("role").notNull().default("trainee"), // admin, trainer, trainee
+  role: text("role").notNull().default("trainee"), // admin, trainer, trainee, training_director
   rank: text("rank"),
   unit: text("unit"),
   avatarUrl: text("avatar_url"),
@@ -295,8 +295,8 @@ export const insertUserSchema = createInsertSchema(users, {
   password: (schema) => schema.min(6, "Password must be at least 6 characters"),
   name: (schema) => schema.min(2, "Name must be at least 2 characters"),
   email: (schema) => schema.email("Please provide a valid email"),
-  role: (schema) => schema.refine((val) => ['admin', 'trainer', 'trainee'].includes(val), {
-    message: "Role must be one of: admin, trainer, trainee"
+  role: (schema) => schema.refine((val) => ['admin', 'trainer', 'trainee', 'training_director'].includes(val), {
+    message: "Role must be one of: admin, trainer, trainee, training_director"
   }),
 });
 
