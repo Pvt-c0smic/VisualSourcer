@@ -1,478 +1,387 @@
-import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { SkillSetForm } from "@/components/forms/skillset-form";
-
-// UI Components
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { ScrollArea } from "@/components/ui/scroll-area";
-
-// Icons
-import { 
-  User, 
-  Settings, 
-  Briefcase, 
-  Award, 
-  Shield, 
-  UserCog,
-  BadgeCheck,
-  Mail,
-  Building,
-  FileText,
-  Save,
-  Loader2
-} from "lucide-react";
-
-interface User {
-  id: number;
-  username: string;
-  name: string;
-  email: string;
-  role: string;
-  rank?: string;
-  unit?: string;
-  avatarUrl?: string;
-  skillSets?: any[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface ProfileUpdateData {
-  name?: string;
-  email?: string;
-  password?: string;
-  rank?: string;
-  unit?: string;
-  avatarUrl?: string;
-}
+import { Separator } from "@/components/ui/separator";
+import { Loader2, Save, UserCircle, Award, Calendar, Shield, Users } from "lucide-react";
+import { useState } from "react";
+import { formatDistanceToNow } from "date-fns";
+import SkillSetsSelect from "@/components/forms/skillsets-select";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ProfilePage() {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("profile");
-  const [isEditing, setIsEditing] = useState(false);
-  const [profileData, setProfileData] = useState<ProfileUpdateData>({});
-  
+  const [selectedSkillSetIds, setSelectedSkillSetIds] = useState<number[]>([]);
+  const [isEditingSkills, setIsEditingSkills] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+
   // Fetch current user data
-  const { data: currentUser, isLoading } = useQuery({
+  const { data: currentUser, isLoading: isLoadingUser } = useQuery({
     queryKey: ['/api/auth/me'],
-    queryFn: () => apiRequest<User>('/api/auth/me'),
   });
+
+  // Perform initial setup when user data loads
+  const isFirstLoad = useState(true)[0];
+  if (currentUser && isFirstLoad && selectedSkillSetIds.length === 0) {
+    // Initialize selected skills from user data
+    const userSkillSets = currentUser.skillSets || [];
+    if (Array.isArray(userSkillSets) && userSkillSets.length > 0) {
+      setSelectedSkillSetIds(userSkillSets.map((skill: any) => skill.id));
+    }
+  }
   
-  // Update profile mutation
-  const updateProfileMutation = useMutation({
-    mutationFn: (data: ProfileUpdateData) => 
-      apiRequest(`/api/users/${currentUser?.id}`, {
+  // Save updated skillsets
+  const updateSkillSets = useMutation({
+    mutationFn: async (skillSetIds: number[]) => {
+      if (!currentUser || !currentUser.id) {
+        throw new Error("User data is not available");
+      }
+      
+      return apiRequest(`/api/users/${currentUser.id}/skillsets`, {
         method: 'PUT',
-        data,
-      }),
-    onSuccess: () => {
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been successfully updated.",
+        data: { skillSetIds }
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
-      setIsEditing(false);
     },
-    onError: (error: any) => {
+    onSuccess: () => {
+      // Invalidate queries to refresh user data
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
       toast({
-        title: "Failed to update profile",
-        description: error.message || "There was an error updating your profile.",
+        title: "Skills updated",
+        description: "Your skill sets have been successfully updated.",
+      });
+      setIsEditingSkills(false);
+    },
+    onError: (error) => {
+      console.error("Error updating skills:", error);
+      toast({
+        title: "Update failed",
+        description: "There was a problem updating your skills. Please try again.",
         variant: "destructive",
       });
-    },
+    }
   });
-  
-  // Handle profile form changes
-  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setProfileData(prev => ({ ...prev, [name]: value }));
+
+  // Format skill sets for display with custom styling by category
+  const getCategoryColor = (category: string) => {
+    const colors: Record<string, { bg: string, text: string }> = {
+      'Technical': { bg: 'bg-blue-100', text: 'text-blue-800' },
+      'Leadership': { bg: 'bg-green-100', text: 'text-green-800' },
+      'Operational': { bg: 'bg-amber-100', text: 'text-amber-800' },
+      'Communication': { bg: 'bg-violet-100', text: 'text-violet-800' }
+    };
+    
+    return colors[category] || { bg: 'bg-gray-100', text: 'text-gray-800' };
   };
-  
-  // Handle profile update
-  const handleProfileUpdate = () => {
-    if (currentUser?.id) {
-      updateProfileMutation.mutate(profileData);
-    }
+
+  // Handle saving skill sets
+  const handleSaveSkillSets = () => {
+    updateSkillSets.mutate(selectedSkillSetIds);
   };
-  
-  // Start editing with current values
-  const startEditing = () => {
-    if (currentUser) {
-      setProfileData({
-        name: currentUser.name,
-        email: currentUser.email,
-        rank: currentUser.rank,
-        unit: currentUser.unit,
-        avatarUrl: currentUser.avatarUrl,
-      });
-      setIsEditing(true);
-    }
-  };
-  
-  // Cancel editing
-  const cancelEditing = () => {
-    setIsEditing(false);
-    setProfileData({});
-  };
-  
-  // Get initials for avatar fallback
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase();
-  };
-  
-  // Format date string
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    }).format(date);
-  };
-  
-  if (isLoading) {
+
+  if (isLoadingUser) {
     return (
-      <div className="container max-w-5xl py-10 flex items-center justify-center min-h-[70vh]">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <div className="flex justify-center items-center min-h-[70vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
-  
+
   if (!currentUser) {
     return (
-      <div className="container max-w-5xl py-10">
-        <Card>
-          <CardHeader>
-            <CardTitle>Profile</CardTitle>
-            <CardDescription>
-              You need to be logged in to view your profile.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+      <div className="text-center py-12">
+        <h2 className="text-2xl font-bold">Not Authenticated</h2>
+        <p className="mt-2">Please log in to view your profile.</p>
       </div>
     );
   }
-  
+
+  // Determine the color and icon to use for the role badge
+  const getRoleBadge = () => {
+    const roleConfig: Record<string, { color: string, icon: React.ReactNode }> = {
+      'admin': { 
+        color: 'bg-red-100 text-red-800 border-red-200', 
+        icon: <Shield className="h-3.5 w-3.5 mr-1" />
+      },
+      'trainer': { 
+        color: 'bg-green-100 text-green-800 border-green-200', 
+        icon: <Users className="h-3.5 w-3.5 mr-1" />
+      },
+      'trainee': { 
+        color: 'bg-blue-100 text-blue-800 border-blue-200', 
+        icon: <Award className="h-3.5 w-3.5 mr-1" />
+      },
+      'training_director': { 
+        color: 'bg-purple-100 text-purple-800 border-purple-200', 
+        icon: <Calendar className="h-3.5 w-3.5 mr-1" />
+      }
+    };
+    
+    const role = currentUser.role || 'trainee';
+    const config = roleConfig[role] || roleConfig.trainee;
+    
+    return (
+      <Badge variant="outline" className={`${config.color} flex items-center`}>
+        {config.icon} {role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ')}
+      </Badge>
+    );
+  };
+
   return (
-    <div className="container max-w-5xl py-10">
-      <div className="flex flex-col space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Profile</h1>
-          {!isEditing && (
-            <Button onClick={startEditing}>
-              <UserCog className="w-4 h-4 mr-2" />
-              Edit Profile
-            </Button>
-          )}
+    <div className="container mx-auto py-8 max-w-6xl">
+      <h1 className="text-3xl font-bold mb-6">Your Profile</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Left Column - User Info */}
+        <div className="md:col-span-1">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex justify-center">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
+                  <AvatarFallback className="text-2xl">
+                    {currentUser.name?.charAt(0) || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              <CardTitle className="mt-4 text-center">{currentUser.name}</CardTitle>
+              <div className="flex justify-center mt-1">
+                {getRoleBadge()}
+              </div>
+              {(currentUser.role === 'trainee' || currentUser.role === 'trainer') && (
+                <div className="mt-3 text-center">
+                  <span className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded mr-1">
+                    {currentUser.rank || 'No Rank'}
+                  </span>
+                  <span className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">
+                    {currentUser.unit || 'No Unit'}
+                  </span>
+                </div>
+              )}
+              <CardDescription className="text-center mt-2">
+                Member since {formatDistanceToNow(new Date(currentUser.createdAt), { addSuffix: true })}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Separator className="my-2" />
+              <div className="space-y-4 mt-4">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Full Name</h3>
+                  <p className="mt-1">{currentUser.name}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Username</h3>
+                  <p className="mt-1">{currentUser.username}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Email</h3>
+                  <p className="mt-1">{currentUser.email}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Role</h3>
+                  <p className="mt-1 capitalize">{currentUser.role?.replace('_', ' ') || 'Trainee'}</p>
+                </div>
+                {currentUser.rank && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Rank</h3>
+                    <p className="mt-1">{currentUser.rank || 'None'}</p>
+                  </div>
+                )}
+                {currentUser.unit && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Unit</h3>
+                    <p className="mt-1">{currentUser.unit || 'None'}</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
         
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mb-6">
-            <TabsTrigger value="profile">
-              <User className="w-4 h-4 mr-2" />
-              Basic Info
-            </TabsTrigger>
-            <TabsTrigger value="skills">
-              <Briefcase className="w-4 h-4 mr-2" />
-              Skill Sets
-            </TabsTrigger>
-            <TabsTrigger value="certificates">
-              <Award className="w-4 h-4 mr-2" />
-              Certificates
-            </TabsTrigger>
-            <TabsTrigger value="security">
-              <Shield className="w-4 h-4 mr-2" />
-              Security
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="profile">
-            <Card>
-              <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
-                <CardDescription>
-                  View and update your personal and organizational information
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col md:flex-row gap-6">
-                  <div className="flex flex-col items-center space-y-3">
-                    <Avatar className="h-32 w-32">
-                      <AvatarImage src={currentUser.avatarUrl || ""} />
-                      <AvatarFallback className="text-2xl">
-                        {getInitials(currentUser.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    
-                    <Badge variant={
-                      currentUser.role === 'admin' ? "destructive" :
-                      currentUser.role === 'trainer' ? "default" :
-                      "secondary"
-                    }>
-                      {currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)}
-                    </Badge>
-                    
-                    {!isEditing && (
-                      <div className="text-sm text-muted-foreground text-center">
-                        Member since {formatDate(currentUser.createdAt)}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex-1 space-y-4">
-                    {isEditing ? (
-                      <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="name">Full Name</Label>
-                            <Input
-                              id="name"
-                              name="name"
-                              value={profileData.name || ""}
-                              onChange={handleProfileChange}
-                            />
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label htmlFor="email">Email Address</Label>
-                            <Input
-                              id="email"
-                              name="email"
-                              type="email"
-                              value={profileData.email || ""}
-                              onChange={handleProfileChange}
-                            />
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label htmlFor="rank">Rank</Label>
-                            <Input
-                              id="rank"
-                              name="rank"
-                              value={profileData.rank || ""}
-                              onChange={handleProfileChange}
-                            />
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label htmlFor="unit">Unit</Label>
-                            <Input
-                              id="unit"
-                              name="unit"
-                              value={profileData.unit || ""}
-                              onChange={handleProfileChange}
-                            />
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label htmlFor="avatarUrl">Avatar URL</Label>
-                            <Input
-                              id="avatarUrl"
-                              name="avatarUrl"
-                              value={profileData.avatarUrl || ""}
-                              onChange={handleProfileChange}
-                            />
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <Label>Full Name</Label>
-                            <div className="mt-1 font-medium">{currentUser.name}</div>
-                          </div>
-                          
-                          <div>
-                            <Label>Username</Label>
-                            <div className="mt-1 font-medium">{currentUser.username}</div>
-                          </div>
-                          
-                          <div>
-                            <Label>Email Address</Label>
-                            <div className="mt-1 font-medium flex items-center">
-                              <Mail className="w-4 h-4 mr-2 text-muted-foreground" />
-                              {currentUser.email}
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <Label>Role</Label>
-                            <div className="mt-1 font-medium flex items-center">
-                              <BadgeCheck className="w-4 h-4 mr-2 text-muted-foreground" />
-                              {currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)}
-                            </div>
-                          </div>
-                          
-                          {currentUser.rank && (
-                            <div>
-                              <Label>Rank</Label>
-                              <div className="mt-1 font-medium">{currentUser.rank}</div>
-                            </div>
-                          )}
-                          
-                          {currentUser.unit && (
-                            <div>
-                              <Label>Unit</Label>
-                              <div className="mt-1 font-medium flex items-center">
-                                <Building className="w-4 h-4 mr-2 text-muted-foreground" />
-                                {currentUser.unit}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-              
-              {isEditing && (
-                <CardFooter className="flex justify-between border-t pt-5">
-                  <Button variant="outline" onClick={cancelEditing}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleProfileUpdate} disabled={updateProfileMutation.isPending}>
-                    {updateProfileMutation.isPending ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Saving
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-4 h-4 mr-2" />
-                        Save Changes
-                      </>
-                    )}
-                  </Button>
-                </CardFooter>
-              )}
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="skills">
-            <Card>
-              <CardHeader>
-                <CardTitle>Skill Sets</CardTitle>
-                <CardDescription>
-                  Manage your skill sets for better course matching
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {currentUser && (
-                  <SkillSetForm 
-                    userId={currentUser.id}
-                    currentSkillSets={currentUser.skillSets || []}
-                  />
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="certificates">
-            <Card>
-              <CardHeader>
-                <CardTitle>Certificates</CardTitle>
-                <CardDescription>
-                  View and download your earned certificates
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="min-h-[400px] flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                  <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Certificate management will be available soon</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="security">
-            <Card>
-              <CardHeader>
-                <CardTitle>Security Settings</CardTitle>
-                <CardDescription>
-                  Manage your account security and password
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Change Password</h3>
-                  <div className="grid gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="password">New Password</Label>
-                      <Input 
-                        id="password" 
-                        name="password"
-                        type="password" 
-                        placeholder="••••••••"
-                        onChange={handleProfileChange}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                      <Input 
-                        id="confirmPassword" 
-                        type="password" 
-                        placeholder="••••••••" 
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Notification Preferences</h3>
-                  <div className="grid gap-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Email Notifications</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Receive email notifications for important events
+        {/* Right Column - Tabs */}
+        <div className="md:col-span-2">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid grid-cols-2">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="skillsets">Skill Sets</TabsTrigger>
+            </TabsList>
+            
+            {/* Overview Tab */}
+            <TabsContent value="overview" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Profile Overview</CardTitle>
+                  <CardDescription>
+                    View your profile information and skills summary
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {/* Summary Stats */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                        <h3 className="text-sm font-medium text-blue-800">Total Skill Sets</h3>
+                        <p className="text-2xl font-bold text-blue-900 mt-1">
+                          {Array.isArray(currentUser.skillSets) ? currentUser.skillSets.length : 0}
                         </p>
                       </div>
-                      <Switch defaultChecked />
+                      {currentUser.role === 'trainee' && (
+                        <div className="bg-green-50 p-4 rounded-lg">
+                          <h3 className="text-sm font-medium text-green-800">Enrolled Programs</h3>
+                          <p className="text-2xl font-bold text-green-900 mt-1">
+                            {currentUser.programEnrollments?.length || 0}
+                          </p>
+                        </div>
+                      )}
+                      {currentUser.role === 'trainer' && (
+                        <div className="bg-amber-50 p-4 rounded-lg">
+                          <h3 className="text-sm font-medium text-amber-800">Programs Led</h3>
+                          <p className="text-2xl font-bold text-amber-900 mt-1">
+                            {currentUser.programsCreated?.length || 0}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Skill Sets Summary */}
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 mb-3">Your Skill Sets</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {Array.isArray(currentUser.skillSets) && currentUser.skillSets.length > 0 ? (
+                          currentUser.skillSets.map((skill: any) => {
+                            const { bg, text } = getCategoryColor(skill.category);
+                            return (
+                              <Badge 
+                                key={skill.id} 
+                                variant="outline"
+                                className={`${bg} ${text} border-none`}
+                              >
+                                {skill.name} (Lvl {skill.level})
+                              </Badge>
+                            );
+                          })
+                        ) : (
+                          <p className="text-sm text-gray-500">No skill sets added yet.</p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-                
-                <div className="pt-4">
-                  <Button 
-                    onClick={handleProfileUpdate}
-                    disabled={updateProfileMutation.isPending || !profileData.password}
-                  >
-                    {updateProfileMutation.isPending ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Saving
-                      </>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            {/* Skill Sets Tab */}
+            <TabsContent value="skillsets" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle>Manage Your Skill Sets</CardTitle>
+                      <CardDescription>
+                        Add or remove skill sets to match your expertise
+                      </CardDescription>
+                    </div>
+                    {!isEditingSkills ? (
+                      <Button onClick={() => setIsEditingSkills(true)}>
+                        Edit Skills
+                      </Button>
                     ) : (
-                      <>
-                        <Save className="w-4 h-4 mr-2" />
-                        Save Security Settings
-                      </>
+                      <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => setIsEditingSkills(false)}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={handleSaveSkillSets}
+                          disabled={updateSkillSets.isPending}
+                        >
+                          {updateSkillSets.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="mr-2 h-4 w-4" />
+                              Save Changes
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     )}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {isEditingSkills ? (
+                    <div className="space-y-4">
+                      <p className="text-sm text-gray-600 mb-2">
+                        Select the skill sets that best represent your capabilities. These will help match you with appropriate training programs.
+                      </p>
+                      <SkillSetsSelect
+                        selectedSkillSetIds={selectedSkillSetIds}
+                        onChange={setSelectedSkillSetIds}
+                        label="Your Skill Sets"
+                        description="Select all skill sets that apply to your experience and training level"
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Display skill sets by category */}
+                      {Array.isArray(currentUser.skillSets) && currentUser.skillSets.length > 0 ? (
+                        (() => {
+                          // Group skills by category
+                          const groupedSkills = currentUser.skillSets.reduce((acc: Record<string, any[]>, skill: any) => {
+                            if (!acc[skill.category]) {
+                              acc[skill.category] = [];
+                            }
+                            acc[skill.category].push(skill);
+                            return acc;
+                          }, {});
+                          
+                          return Object.entries(groupedSkills).map(([category, skills]) => (
+                            <div key={category}>
+                              <h3 className="text-sm font-medium text-gray-500 mb-2">{category}</h3>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {skills.sort((a: any, b: any) => b.level - a.level).map((skill: any) => {
+                                  const { bg, text } = getCategoryColor(skill.category);
+                                  return (
+                                    <div key={skill.id} className={`p-3 rounded-md ${bg}`}>
+                                      <div className="flex justify-between items-center">
+                                        <h4 className={`font-medium ${text}`}>{skill.name}</h4>
+                                        <Badge variant="outline" className={`${text} border-current`}>
+                                          Level {skill.level}
+                                        </Badge>
+                                      </div>
+                                      {skill.description && (
+                                        <p className="text-sm text-gray-600 mt-1">{skill.description}</p>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ));
+                        })()
+                      ) : (
+                        <div className="text-center py-8">
+                          <UserCircle className="h-12 w-12 text-gray-300 mx-auto" />
+                          <h3 className="mt-4 text-lg font-medium text-gray-900">No skill sets added</h3>
+                          <p className="mt-1 text-sm text-gray-500">
+                            You haven't added any skill sets to your profile yet.
+                          </p>
+                          <Button onClick={() => setIsEditingSkills(true)} className="mt-4">
+                            Add Skill Sets
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   );

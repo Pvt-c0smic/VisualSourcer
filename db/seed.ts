@@ -124,11 +124,30 @@ async function seed() {
     if (!existingSkillSet) {
       console.log("Creating skill sets...");
       await db.insert(schema.skillSets).values([
+        // Technical Category - Level 1 to 4
         {
           name: "Cybersecurity",
           category: "Technical",
           level: 4, // Maximum level available
           description: "Security measures to protect networked systems from unauthorized access"
+        },
+        {
+          name: "Cybersecurity Fundamentals",
+          category: "Technical",
+          level: 1,
+          description: "Basic cybersecurity concepts and practices"
+        },
+        {
+          name: "Cyber Defense",
+          category: "Technical",
+          level: 2,
+          description: "Techniques to detect and prevent cyber attacks"
+        },
+        {
+          name: "Cyber Threat Intelligence",
+          category: "Technical",
+          level: 3,
+          description: "Analysis of cyber threats and vulnerabilities"
         },
         {
           name: "Networking",
@@ -137,11 +156,37 @@ async function seed() {
           description: "Design, implementation and management of computer networks"
         },
         {
+          name: "Network Basics",
+          category: "Technical",
+          level: 1,
+          description: "Fundamentals of network communication"
+        },
+        {
+          name: "Routing & Switching",
+          category: "Technical",
+          level: 2,
+          description: "Configuration of network routing and switching"
+        },
+        {
+          name: "Advanced Networking",
+          category: "Technical",
+          level: 3,
+          description: "Complex network design and troubleshooting"
+        },
+        {
           name: "System Administration",
           category: "Technical",
           level: 4,
           description: "Management and maintenance of computer systems and servers"
         },
+        {
+          name: "Basic System Operations",
+          category: "Technical",
+          level: 1,
+          description: "Fundamental system operations and maintenance"
+        },
+        
+        // Leadership Category - Level 1 to 4
         {
           name: "Command and Control",
           category: "Leadership",
@@ -149,10 +194,74 @@ async function seed() {
           description: "Decision-making and directive authority in operations"
         },
         {
+          name: "Team Leadership",
+          category: "Leadership",
+          level: 1,
+          description: "Basic leadership skills for small team management"
+        },
+        {
+          name: "Strategic Planning",
+          category: "Leadership",
+          level: 2,
+          description: "Development of mission objectives and resource allocation"
+        },
+        {
+          name: "Organizational Leadership",
+          category: "Leadership",
+          level: 3,
+          description: "Leading and managing organizational units"
+        },
+        
+        // Operational Category - Level 1 to 4
+        {
           name: "Information Operations",
           category: "Operational",
           level: 4,
           description: "Integrated employment of information capabilities"
+        },
+        {
+          name: "Field Operations",
+          category: "Operational",
+          level: 1,
+          description: "Basic field operational procedures"
+        },
+        {
+          name: "Tactical Planning",
+          category: "Operational",
+          level: 2,
+          description: "Planning and execution of tactical operations"
+        },
+        {
+          name: "Mission Planning",
+          category: "Operational",
+          level: 3,
+          description: "Comprehensive planning for complex operations"
+        },
+        
+        // Communication Category - New category
+        {
+          name: "Technical Communication",
+          category: "Communication",
+          level: 1,
+          description: "Clear communication of technical concepts"
+        },
+        {
+          name: "Briefing Skills",
+          category: "Communication",
+          level: 2,
+          description: "Effective presentation and briefing techniques"
+        },
+        {
+          name: "Cross-functional Communication",
+          category: "Communication",
+          level: 3,
+          description: "Communication across different operational domains"
+        },
+        {
+          name: "Strategic Communication",
+          category: "Communication",
+          level: 4,
+          description: "High-level communication strategy and implementation"
         }
       ]);
     }
