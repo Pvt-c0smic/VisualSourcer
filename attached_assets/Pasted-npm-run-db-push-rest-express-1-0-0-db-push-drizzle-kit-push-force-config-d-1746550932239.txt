@@ -1,0 +1,437 @@
+npm run db:push            
+
+> rest-express@1.0.0 db:push
+> drizzle-kit push --force --config=./drizzle.config.ts
+
+Reading config file 'D:\Personal\JLU\Capstone\masters\VisualSourcer\drizzle.config.ts'
+Using 'pg' driver for database querying
+[✓] Pulling schema from database...
+
+ Warning  You are about to execute current statements:
+
+CREATE TABLE IF NOT EXISTS "certificate_templates" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "name" text NOT NULL,
+        "description" text,
+        "html_template" text NOT NULL,
+        "is_default" boolean DEFAULT false,
+        "created_by_id" integer NOT NULL,
+        "created_at" timestamp DEFAULT now() NOT NULL,
+        "updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "certificates" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "title" text NOT NULL,
+        "user_id" integer NOT NULL,
+        "program_id" integer NOT NULL,
+        "issue_date" timestamp DEFAULT now() NOT NULL,
+        "expiry_date" timestamp,
+        "certificate_number" text NOT NULL,
+        "status" text DEFAULT 'Active' NOT NULL,
+        "file_url" text,
+        "created_by_id" integer NOT NULL,
+        "created_at" timestamp DEFAULT now() NOT NULL,
+        "updated_at" timestamp DEFAULT now() NOT NULL,
+        CONSTRAINT "certificates_certificate_number_unique" UNIQUE("certificate_number")
+);
+
+CREATE TABLE IF NOT EXISTS "event_participants" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "event_id" integer NOT NULL,
+        "user_id" integer NOT NULL,
+        "status" text DEFAULT 'Pending' NOT NULL,
+        "notified" boolean DEFAULT false,
+        "created_at" timestamp DEFAULT now() NOT NULL,
+        "updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "events" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "title" text NOT NULL,
+        "description" text,
+        "start_time" timestamp NOT NULL,
+        "end_time" timestamp NOT NULL,
+        "location" text,
+        "type" text NOT NULL,
+        "venue_type" text,
+        "required" boolean DEFAULT false,
+        "created_by_id" integer NOT NULL,
+        "created_at" timestamp DEFAULT now() NOT NULL,
+        "updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "lectures" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "module_id" integer NOT NULL,
+        "title" text NOT NULL,
+        "content" text NOT NULL,
+        "attachments" jsonb DEFAULT '[]'::jsonb,
+        "created_by_id" integer NOT NULL,
+        "created_at" timestamp DEFAULT now() NOT NULL,
+        "updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "meeting_participants" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "meeting_id" integer NOT NULL,
+        "user_id" integer NOT NULL,
+        "role" text DEFAULT 'Attendee',
+        "stakeholder_type" text,
+        "status" text DEFAULT 'Pending' NOT NULL,
+        "response_message" text,
+        "notified" boolean DEFAULT false,
+        "attendance" text,
+        "required_attendance" boolean DEFAULT true,
+        "contribution_notes" text,
+        "created_at" timestamp DEFAULT now() NOT NULL,
+        "updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "meetings" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "title" text NOT NULL,
+        "description" text,
+        "start_time" timestamp NOT NULL,
+        "end_time" timestamp NOT NULL,
+        "location" text,
+        "type" text NOT NULL,
+        "status" text DEFAULT 'Scheduled' NOT NULL,
+        "agenda" jsonb DEFAULT '[]'::jsonb,
+        "notes" text,
+        "tags" jsonb DEFAULT '[]'::jsonb,
+        "priority" text DEFAULT 'Normal',
+        "recurrence" text,
+        "required_attendance" boolean DEFAULT false,
+        "private_notes" text,
+        "external_stakeholders" jsonb DEFAULT '[]'::jsonb,
+        "created_by_id" integer NOT NULL,
+        "event_id" integer,
+        "created_at" timestamp DEFAULT now() NOT NULL,
+        "updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "notifications" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "user_id" integer NOT NULL,
+        "title" text NOT NULL,
+        "message" text NOT NULL,
+        "type" text NOT NULL,
+        "read" boolean DEFAULT false,
+        "link" text,
+        "created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "program_enrollments" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "program_id" integer NOT NULL,
+        "user_id" integer NOT NULL,
+        "enrollment_date" timestamp DEFAULT now() NOT NULL,
+        "status" text DEFAULT 'Active' NOT NULL,
+        "progress" integer DEFAULT 0,
+        "completion_date" timestamp,
+        "final_score" integer,
+        "created_at" timestamp DEFAULT now() NOT NULL,
+        "updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "program_modules" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "program_id" integer NOT NULL,
+        "title" text NOT NULL,
+        "description" text,
+        "content" text,
+        "type" text DEFAULT 'lecture' NOT NULL,
+        "order" integer NOT NULL,
+        "estimated_duration" text,
+        "created_at" timestamp DEFAULT now() NOT NULL,
+        "updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "programs" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "code" text NOT NULL,
+        "name" text NOT NULL,
+        "description" text,
+        "skill_set_id" integer NOT NULL,
+        "skill_set_level" integer NOT NULL,
+        "start_date" date NOT NULL,
+        "duration" text NOT NULL,
+        "capacity" integer NOT NULL,
+        "venue" text NOT NULL,
+        "location" text,
+        "objectives" jsonb DEFAULT '[]'::jsonb,
+        "prerequisites" jsonb DEFAULT '[]'::jsonb,
+        "status" text DEFAULT 'Open' NOT NULL,
+        "passing_score" integer DEFAULT 70,
+        "certificate_title" text,
+        "created_by_id" integer NOT NULL,
+        "created_at" timestamp DEFAULT now() NOT NULL,
+        "updated_at" timestamp DEFAULT now() NOT NULL,
+        CONSTRAINT "programs_code_unique" UNIQUE("code")
+);
+
+CREATE TABLE IF NOT EXISTS "quiz_attempts" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "quiz_id" integer NOT NULL,
+        "user_id" integer NOT NULL,
+        "start_time" timestamp DEFAULT now() NOT NULL,
+        "end_time" timestamp,
+        "score" integer,
+        "max_possible_score" integer,
+        "percentage_score" numeric(5, 2),
+        "passed" boolean,
+        "reviewed_by" integer,
+        "review_date" timestamp,
+        "feedback" text,
+        "created_at" timestamp DEFAULT now() NOT NULL,
+        "updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "quiz_questions" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "quiz_id" integer NOT NULL,
+        "question_text" text NOT NULL,
+        "question_type" text NOT NULL,
+        "options" jsonb DEFAULT '[]'::jsonb,
+        "correct_answer" text,
+        "points" integer DEFAULT 1,
+        "order" integer NOT NULL,
+        "created_at" timestamp DEFAULT now() NOT NULL,
+        "updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "quiz_responses" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "attempt_id" integer NOT NULL,
+        "question_id" integer NOT NULL,
+        "user_answer" text,
+        "is_correct" boolean,
+        "points" integer DEFAULT 0,
+        "feedback" text,
+        "created_at" timestamp DEFAULT now() NOT NULL,
+        "updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "quizzes" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "module_id" integer NOT NULL,
+        "title" text NOT NULL,
+        "description" text,
+        "time_limit" integer,
+        "passing_score" integer DEFAULT 70,
+        "randomize_questions" boolean DEFAULT false,
+        "created_by_id" integer NOT NULL,
+        "created_at" timestamp DEFAULT now() NOT NULL,
+        "updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "skill_sets" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "name" text NOT NULL,
+        "category" text NOT NULL,
+        "level" integer NOT NULL,
+        "description" text,
+        "created_at" timestamp DEFAULT now() NOT NULL,
+        "updated_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "users" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "username" text NOT NULL,
+        "password" text NOT NULL,
+        "name" text NOT NULL,
+        "email" text NOT NULL,
+        "role" text DEFAULT 'trainee' NOT NULL,
+        "rank" text,
+        "unit" text,
+        "avatar_url" text,
+        "skill_sets" jsonb DEFAULT '[]'::jsonb,
+        "created_at" timestamp DEFAULT now() NOT NULL,
+        "updated_at" timestamp DEFAULT now() NOT NULL,
+        CONSTRAINT "users_username_unique" UNIQUE("username"),
+        CONSTRAINT "users_email_unique" UNIQUE("email")
+);
+
+DO $$ BEGIN
+ ALTER TABLE "certificate_templates" ADD CONSTRAINT "certificate_templates_created_by_id_users_id_fk" FOREIGN KEY ("created_by_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "certificates" ADD CONSTRAINT "certificates_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "certificates" ADD CONSTRAINT "certificates_program_id_programs_id_fk" FOREIGN KEY ("program_id") REFERENCES "public"."programs"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "certificates" ADD CONSTRAINT "certificates_created_by_id_users_id_fk" FOREIGN KEY ("created_by_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "event_participants" ADD CONSTRAINT "event_participants_event_id_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "event_participants" ADD CONSTRAINT "event_participants_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "events" ADD CONSTRAINT "events_created_by_id_users_id_fk" FOREIGN KEY ("created_by_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "lectures" ADD CONSTRAINT "lectures_module_id_program_modules_id_fk" FOREIGN KEY ("module_id") REFERENCES "public"."program_modules"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "lectures" ADD CONSTRAINT "lectures_created_by_id_users_id_fk" FOREIGN KEY ("created_by_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "meeting_participants" ADD CONSTRAINT "meeting_participants_meeting_id_meetings_id_fk" FOREIGN KEY ("meeting_id") REFERENCES "public"."meetings"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "meeting_participants" ADD CONSTRAINT "meeting_participants_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "meetings" ADD CONSTRAINT "meetings_created_by_id_users_id_fk" FOREIGN KEY ("created_by_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "meetings" ADD CONSTRAINT "meetings_event_id_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "notifications" ADD CONSTRAINT "notifications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "program_enrollments" ADD CONSTRAINT "program_enrollments_program_id_programs_id_fk" FOREIGN KEY ("program_id") REFERENCES "public"."programs"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "program_enrollments" ADD CONSTRAINT "program_enrollments_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "program_modules" ADD CONSTRAINT "program_modules_program_id_programs_id_fk" FOREIGN KEY ("program_id") REFERENCES "public"."programs"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "programs" ADD CONSTRAINT "programs_skill_set_id_skill_sets_id_fk" FOREIGN KEY ("skill_set_id") REFERENCES "public"."skill_sets"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "programs" ADD CONSTRAINT "programs_created_by_id_users_id_fk" FOREIGN KEY ("created_by_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "quiz_attempts" ADD CONSTRAINT "quiz_attempts_quiz_id_quizzes_id_fk" FOREIGN KEY ("quiz_id") REFERENCES "public"."quizzes"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "quiz_attempts" ADD CONSTRAINT "quiz_attempts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "quiz_attempts" ADD CONSTRAINT "quiz_attempts_reviewed_by_users_id_fk" FOREIGN KEY ("reviewed_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "quiz_questions" ADD CONSTRAINT "quiz_questions_quiz_id_quizzes_id_fk" FOREIGN KEY ("quiz_id") REFERENCES "public"."quizzes"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "quiz_responses" ADD CONSTRAINT "quiz_responses_attempt_id_quiz_attempts_id_fk" FOREIGN KEY ("attempt_id") REFERENCES "public"."quiz_attempts"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "quiz_responses" ADD CONSTRAINT "quiz_responses_question_id_quiz_questions_id_fk" FOREIGN KEY ("question_id") REFERENCES "public"."quiz_questions"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "quizzes" ADD CONSTRAINT "quizzes_module_id_program_modules_id_fk" FOREIGN KEY ("module_id") REFERENCES "public"."program_modules"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "quizzes" ADD CONSTRAINT "quizzes_created_by_id_users_id_fk" FOREIGN KEY ("created_by_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+
+[✓] Changes applied
+PS D:\Personal\JLU\Capstone\masters\VisualSourcer> npm run db:seed
+
+> rest-express@1.0.0 db:seed
+> tsx db/seed.ts
+
+file:///D:/Personal/JLU/Capstone/masters/VisualSourcer/db/index.ts:1
+import{Pool,neonConfig}from"@neondatabase/serverless";import{drizzle}from"drizzle-orm/neon-serverless";import ws from"ws";import*as schema from"@shared/schema";neonConfig.webSocketConstructor=ws;if(!process.env.DATABASE_URL){throw new Error("DATABASE_URL must be set. Did you forget to provision a database?")}const pool=new Pool({connectionString:process.env.DATABASE_URL});const db=drizzle({client:pool,schema});export{db,pool};
+                                                                                                                                                                                                                                       ^
+
+Error: DATABASE_URL must be set. Did you forget to provision a database?
+    at <anonymous> (d:\Personal\JLU\Capstone\masters\VisualSourcer\db\index.ts:10:9)
+    at ModuleJob.run (node:internal/modules/esm/module_job:217:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)
+    at async loadESM (node:internal/process/esm_loader:34:7)
+    at async handleMainPromise (node:internal/modules/run_main:66:12)
+
+Node.js v20.9.0
+PS D:\Personal\JLU\Capstone\masters\VisualSourcer> npm run db:seed
