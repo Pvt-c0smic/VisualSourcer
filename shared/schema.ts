@@ -229,6 +229,12 @@ export const meetings = pgTable("meetings", {
   status: text("status").notNull().default("Scheduled"), // Scheduled, Completed, Cancelled, Pending
   agenda: jsonb("agenda").default([]), // Array of agenda items
   notes: text("notes"),
+  tags: jsonb("tags").default([]), // Array of tags for categorizing meetings
+  priority: text("priority").default("Normal"), // High, Normal, Low
+  recurrence: text("recurrence"), // None, Daily, Weekly, Monthly
+  requiredAttendance: boolean("required_attendance").default(false), // Is attendance mandatory
+  privateNotes: text("private_notes"), // Notes visible only to organizer
+  externalStakeholders: jsonb("external_stakeholders").default([]), // External people to invite
   createdById: integer("created_by_id").references(() => users.id).notNull(),
   eventId: integer("event_id").references(() => events.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -252,9 +258,14 @@ export const meetingParticipants = pgTable("meeting_participants", {
   id: serial("id").primaryKey(),
   meetingId: integer("meeting_id").references(() => meetings.id).notNull(),
   userId: integer("user_id").references(() => users.id).notNull(),
-  role: text("role").default("Attendee"), // Organizer, Attendee, Presenter
+  role: text("role").default("Attendee"), // Organizer, Attendee, Presenter, Stakeholder, Observer, Subject Matter Expert, Trainee, Trainer, Optional
+  stakeholderType: text("stakeholder_type"), // Internal, External, Military, Civilian, Contractor, etc.
   status: text("status").notNull().default("Pending"), // Pending, Confirmed, Declined
+  responseMessage: text("response_message"), // Optional message when responding
   notified: boolean("notified").default(false),
+  attendance: text("attendance"), // Present, Absent, Excused, Late
+  requiredAttendance: boolean("required_attendance").default(true), // Is this person required to attend
+  contributionNotes: text("contribution_notes"), // Notes about participant's contributions
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

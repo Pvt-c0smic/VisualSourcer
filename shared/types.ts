@@ -145,10 +145,24 @@ export interface Meeting {
   status: 'Scheduled' | 'Completed' | 'Cancelled' | 'Pending';
   agenda?: string[];
   notes?: string;
+  tags?: string[];
+  priority?: 'High' | 'Normal' | 'Low';
+  recurrence?: 'None' | 'Daily' | 'Weekly' | 'Monthly';
+  requiredAttendance?: boolean;
+  privateNotes?: string;
+  externalStakeholders?: ExternalStakeholder[];
   participants: User[];
   createdById: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ExternalStakeholder {
+  name: string;
+  email: string;
+  organization: string;
+  role?: string;
+  notes?: string;
 }
 
 export interface MeetingCreateRequest {
@@ -160,7 +174,20 @@ export interface MeetingCreateRequest {
   type: 'VTC' | 'Face-to-Face';
   agenda?: string[];
   notes?: string;
-  participants: number[];
+  tags?: string[];
+  priority?: 'High' | 'Normal' | 'Low';
+  recurrence?: 'None' | 'Daily' | 'Weekly' | 'Monthly';
+  requiredAttendance?: boolean;
+  privateNotes?: string;
+  externalStakeholders?: ExternalStakeholder[];
+  participants: MeetingParticipantRequest[];
+}
+
+export interface MeetingParticipantRequest {
+  userId: number;
+  role?: 'Organizer' | 'Attendee' | 'Presenter' | 'Stakeholder' | 'Observer' | 'Subject Matter Expert' | 'Trainee' | 'Trainer' | 'Optional';
+  stakeholderType?: string;
+  requiredAttendance?: boolean;
 }
 
 export interface MeetingParticipant {
@@ -168,9 +195,14 @@ export interface MeetingParticipant {
   meetingId: number;
   userId: number;
   user: User;
-  role: 'Organizer' | 'Attendee' | 'Presenter';
+  role: 'Organizer' | 'Attendee' | 'Presenter' | 'Stakeholder' | 'Observer' | 'Subject Matter Expert' | 'Trainee' | 'Trainer' | 'Optional';
+  stakeholderType?: string;
   status: 'Pending' | 'Confirmed' | 'Declined';
+  responseMessage?: string;
   notified: boolean;
+  attendance?: 'Present' | 'Absent' | 'Excused' | 'Late';
+  requiredAttendance: boolean;
+  contributionNotes?: string;
 }
 
 // Certificate related types
