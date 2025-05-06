@@ -84,18 +84,39 @@ export async function createMeeting(req: Request, res: Response) {
       createdById: user.id,
     });
     
-    // Create meeting linked to the event
+    // Create meeting linked to the event with enhanced data
     const newMeeting = await storage.createMeeting({
       ...validatedData,
       eventId: event.id,
+      tags: req.body.tags || [],
+      priority: req.body.priority || "Normal",
+      recurrence: req.body.recurrence || "None",
+      requiredAttendance: req.body.requiredAttendance || false,
+      privateNotes: req.body.privateNotes,
+      externalStakeholders: req.body.externalStakeholders || [],
       createdById: user.id,
     });
     
-    // Add participants
+    // Add participants with enhanced data
     if (Array.isArray(req.body.participants) && req.body.participants.length > 0) {
       await Promise.all(
-        req.body.participants.map(async (participantId: number) => {
-          return storage.addMeetingParticipant(newMeeting.id, participantId, "Attendee");
+        req.body.participants.map(async (participant: any) => {
+          const participantId = typeof participant === 'number' ? participant : participant.userId;
+          const participantData = {
+            role: participant.role || "Attendee",
+            stakeholderType: participant.stakeholderType,
+            requiredAttendance: participant.requiredAttendance !== undefined 
+              ? participant.requiredAttendance 
+              : true
+          };
+          
+          return storage.addMeetingParticipant(
+            newMeeting.id, 
+            participantId, 
+            typeof participant === 'number' 
+              ? { role: "Attendee" } 
+              : participantData
+          );
         })
       );
       

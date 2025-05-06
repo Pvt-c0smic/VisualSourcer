@@ -218,9 +218,16 @@ export const storage = {
           rank: user?.rank,
           unit: user?.unit,
           avatarUrl: user?.avatarUrl,
+          
+          // Enhanced participation details
           participationStatus: participant.status,
           participationRole: participant.role,
-          participationId: participant.id
+          participationId: participant.id,
+          stakeholderType: participant.stakeholderType,
+          responseMessage: participant.responseMessage,
+          attendance: participant.attendance,
+          requiredAttendance: participant.requiredAttendance,
+          contributionNotes: participant.contributionNotes
         };
       })
     );
@@ -266,7 +273,13 @@ export const storage = {
     return true;
   },
 
-  addMeetingParticipant: async (meetingId: number, userId: number, role: string) => {
+  addMeetingParticipant: async (meetingId: number, userId: number, participantData: {
+    role: string;
+    stakeholderType?: string;
+    requiredAttendance?: boolean;
+  }) => {
+    const { role, stakeholderType, requiredAttendance = true } = participantData;
+    
     // Check if participant already exists
     const existingParticipant = await db.query.meetingParticipants.findFirst({
       where: and(
@@ -276,11 +289,16 @@ export const storage = {
     });
 
     if (existingParticipant) {
-      // Update the role if it changed
-      if (existingParticipant.role !== role) {
+      // Update the participant data if it changed
+      if (existingParticipant.role !== role || 
+          existingParticipant.stakeholderType !== stakeholderType ||
+          existingParticipant.requiredAttendance !== requiredAttendance) {
+        
         const [updatedParticipant] = await db.update(meetingParticipants)
           .set({
             role,
+            stakeholderType,
+            requiredAttendance,
             updatedAt: new Date()
           })
           .where(eq(meetingParticipants.id, existingParticipant.id))
@@ -296,16 +314,38 @@ export const storage = {
         meetingId,
         userId,
         role,
+        stakeholderType,
+        requiredAttendance,
         status: role === 'Organizer' ? 'Confirmed' : 'Pending',
       })
       .returning();
     return newParticipant;
   },
 
-  updateMeetingParticipantStatus: async (participantId: number, status: string) => {
+  updateMeetingParticipantStatus: async (participantId: number, status: string, responseMessage?: string) => {
     const [updatedParticipant] = await db.update(meetingParticipants)
       .set({
         status,
+        responseMessage,
+        updatedAt: new Date()
+      })
+      .where(eq(meetingParticipants.id, participantId))
+      .returning();
+    return updatedParticipant;
+  },
+  
+  updateMeetingParticipantDetails: async (participantId: number, details: {
+    role?: string;
+    status?: string;
+    stakeholderType?: string;
+    responseMessage?: string;
+    attendance?: string;
+    requiredAttendance?: boolean;
+    contributionNotes?: string;
+  }) => {
+    const [updatedParticipant] = await db.update(meetingParticipants)
+      .set({
+        ...details,
         updatedAt: new Date()
       })
       .where(eq(meetingParticipants.id, participantId))
