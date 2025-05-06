@@ -1,7 +1,17 @@
 import OpenAI from "openai";
 
-// Initialize OpenAI API client
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Initialize OpenAI API client with optional API key
+let openai: OpenAI | null = null;
+try {
+  if (process.env.OPENAI_API_KEY) {
+    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    console.log("OpenAI API initialized successfully");
+  } else {
+    console.warn("OPENAI_API_KEY not provided, AI features will be limited");
+  }
+} catch (error) {
+  console.error("Failed to initialize OpenAI API:", error);
+}
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 
 interface ParticipantSchedule {
@@ -99,6 +109,11 @@ export async function suggestMeetingDateTime(
         - conflictResolutionSuggestion: Suggestion for how to resolve conflicts (e.g., "Consider rescheduling if these participants are critical")
     `;
     
+    // Check if OpenAI is available
+    if (!openai) {
+      throw new Error("OpenAI API not initialized");
+    }
+    
     // Call OpenAI API with enhanced system prompt
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -168,6 +183,11 @@ export async function suggestTrainingPrograms(
       Respond with a JSON array of program IDs and a brief reason for each suggestion.
     `;
     
+    // Check if OpenAI is available
+    if (!openai) {
+      throw new Error("OpenAI API not initialized");
+    }
+    
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -205,6 +225,11 @@ export async function analyzeUserProgress(
       3. Areas for improvement
       4. Suggestions for next steps in their training journey
     `;
+    
+    // Check if OpenAI is available
+    if (!openai) {
+      throw new Error("OpenAI API not initialized");
+    }
     
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
