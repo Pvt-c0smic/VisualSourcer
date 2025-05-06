@@ -14,6 +14,7 @@ import {
   List,
   Award,
   LogOut,
+  User,
 } from "lucide-react";
 import { useTheme } from "@/components/ui/theme-provider";
 import { Button } from "@/components/ui/button";
@@ -161,7 +162,7 @@ export function Sidebar({ className }: SidebarProps) {
 
       {user && (
         <div className="flex-shrink-0 p-4 border-t border-primary-light dark:border-neutral-dark">
-          <div className="flex items-center">
+          <div className="flex items-center mb-2">
             <UserAvatar user={user} className="h-10 w-10" />
             <div className="ml-3">
               <p className="text-sm font-medium text-white">{user.name}</p>
@@ -176,6 +177,12 @@ export function Sidebar({ className }: SidebarProps) {
               <LogOut className="h-5 w-5" />
             </Button>
           </div>
+          <Link href="/profile">
+            <a className="flex items-center justify-center w-full py-1.5 mt-1 text-sm text-white bg-primary-light dark:bg-sidebar-accent rounded-md hover:bg-primary-dark dark:hover:bg-sidebar-primary transition-colors">
+              <User className="w-4 h-4 mr-2" />
+              My Profile
+            </a>
+          </Link>
         </div>
       )}
     </div>
