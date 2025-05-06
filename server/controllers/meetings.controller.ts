@@ -405,35 +405,77 @@ export async function suggestMeetingTime(req: Request, res: Response) {
     
     const requestSchema = z.object({
       participantIds: z.array(z.number()),
+      participantRoles: z.array(z.object({
+        userId: z.number(),
+        role: z.string().optional(),
+        requiredAttendance: z.boolean().optional()
+      })).optional(),
       durationMinutes: z.number().optional(),
       preferredDates: z.array(z.string()).optional(),
       meetingPurpose: z.string().optional(),
+      allowRecurring: z.boolean().optional(),
+      existingMeetingId: z.number().optional(),
     });
     
     const validatedData = requestSchema.parse(req.body);
     
-    // Get participant schedules
+    // Create a map of participant roles and attendance requirements
+    const participantDetailsMap = new Map();
+    
+    if (validatedData.participantRoles && validatedData.participantRoles.length > 0) {
+      validatedData.participantRoles.forEach(p => {
+        participantDetailsMap.set(p.userId, {
+          role: p.role || "Attendee",
+          requiredAttendance: p.requiredAttendance === undefined ? true : p.requiredAttendance
+        });
+      });
+    }
+    
+    // Get participant schedules with enhanced details
     const participantSchedules = await Promise.all(
       validatedData.participantIds.map(async (participantId) => {
         const user = await storage.getUserById(participantId);
         const events = await storage.getUserEvents(participantId);
+        const meetings = await storage.getUserMeetings(participantId);
+        
+        // Combine events and meetings for complete schedule
+        const allEvents = [
+          ...events.map(event => ({
+            startTime: event.startTime,
+            endTime: event.endTime,
+            title: event.title || "Calendar Event"
+          })),
+          ...meetings.map(meeting => ({
+            startTime: meeting.startTime,
+            endTime: meeting.endTime,
+            title: meeting.title || "Meeting"
+          }))
+        ];
+        
+        // Get participant details from the map or use defaults
+        const details = participantDetailsMap.get(participantId) || { 
+          role: "Attendee", 
+          requiredAttendance: true 
+        };
+        
         return {
           userId: participantId,
           name: user ? user.name : `User ${participantId}`,
-          events: events.map(event => ({
-            startTime: event.startTime,
-            endTime: event.endTime,
-          })),
+          role: details.role,
+          requiredAttendance: details.requiredAttendance,
+          events: allEvents
         };
       })
     );
     
-    // Use OpenAI to suggest optimal meeting time
+    // Use enhanced OpenAI to suggest optimal meeting time with conflict resolution
     const suggestion = await suggestMeetingDateTime(
       participantSchedules,
       validatedData.durationMinutes || 60,
       validatedData.preferredDates || [],
-      validatedData.meetingPurpose || "general discussion"
+      validatedData.meetingPurpose || "general discussion",
+      validatedData.allowRecurring || false,
+      validatedData.existingMeetingId
     );
     
     res.json(suggestion);
@@ -444,5 +486,120 @@ export async function suggestMeetingTime(req: Request, res: Response) {
     
     console.error("Error suggesting meeting time:", error);
     res.status(500).json({ message: "Failed to suggest meeting time" });
+  }
+}
+
+// Detect and resolve meeting conflicts
+export async function detectMeetingConflicts(req: Request, res: Response) {
+  try {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const requestSchema = z.object({
+      meetingId: z.number(),
+      newStartTime: z.string().optional(),
+      newEndTime: z.string().optional()
+    });
+    
+    const validatedData = requestSchema.parse(req.body);
+    
+    // Get the meeting and its participants
+    const meeting = await storage.getMeetingById(validatedData.meetingId);
+    
+    if (!meeting) {
+      return res.status(404).json({ message: "Meeting not found" });
+    }
+    
+    const participants = await storage.getMeetingParticipants(validatedData.meetingId);
+    
+    // Use new start/end times if provided, otherwise use the existing meeting times
+    const startTime = validatedData.newStartTime 
+      ? new Date(validatedData.newStartTime) 
+      : meeting.startTime;
+    
+    const endTime = validatedData.newEndTime 
+      ? new Date(validatedData.newEndTime) 
+      : meeting.endTime;
+    
+    // Check for conflicts for each participant
+    const conflicts = await Promise.all(
+      participants.map(async (participant) => {
+        if (!participant.id) return null;
+        
+        // Get participant events
+        const events = await storage.getUserEvents(participant.id);
+        const meetings = await storage.getUserMeetings(participant.id);
+        
+        // Filter out the current meeting from the meetings list
+        const otherMeetings = meetings.filter(m => m.id !== validatedData.meetingId);
+        
+        // Combine events and other meetings
+        const allEvents = [
+          ...events,
+          ...otherMeetings
+        ];
+        
+        // Check for conflicts
+        const conflicts = allEvents.filter(event => {
+          const eventStart = new Date(event.startTime);
+          const eventEnd = new Date(event.endTime);
+          
+          // Check if there's an overlap
+          return (
+            (startTime >= eventStart && startTime < eventEnd) || // Start time is during another event
+            (endTime > eventStart && endTime <= eventEnd) || // End time is during another event
+            (startTime <= eventStart && endTime >= eventEnd) // This meeting encompasses another event
+          );
+        });
+        
+        if (conflicts.length > 0) {
+          return {
+            userId: participant.id,
+            name: participant.name,
+            conflicts: conflicts.map(c => ({
+              title: c.title,
+              startTime: c.startTime,
+              endTime: c.endTime,
+              type: "events" in c ? "event" : "meeting"
+            }))
+          };
+        }
+        
+        return null;
+      })
+    );
+    
+    // Filter out null values and return only participants with conflicts
+    const conflictingParticipants = conflicts.filter(c => c !== null);
+    
+    // Generate suggestions for resolving conflicts
+    let resolutionSuggestion = "";
+    if (conflictingParticipants.length > 0) {
+      const requiredParticipantsWithConflicts = conflictingParticipants.filter(
+        cp => participants.find(p => p.id === cp?.userId)?.requiredAttendance
+      );
+      
+      if (requiredParticipantsWithConflicts.length > 0) {
+        resolutionSuggestion = "Consider rescheduling as required participants have conflicts.";
+      } else {
+        resolutionSuggestion = "Optional participants have conflicts. You may proceed or consider an alternative time.";
+      }
+    }
+    
+    res.json({
+      hasConflicts: conflictingParticipants.length > 0,
+      conflictingParticipants,
+      resolutionSuggestion,
+      totalParticipants: participants.length,
+      conflictingParticipantsCount: conflictingParticipants.length
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ errors: error.errors });
+    }
+    
+    console.error("Error detecting meeting conflicts:", error);
+    res.status(500).json({ message: "Failed to detect meeting conflicts" });
   }
 }

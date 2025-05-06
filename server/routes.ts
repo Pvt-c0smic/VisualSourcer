@@ -86,6 +86,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/meetings/:id/respond", isAuthenticated, meetingsController.respondToMeeting);
   apiRouter.put("/meetings/:meetingId/participants/:participantId", isAuthenticated, meetingsController.updateMeetingParticipant);
   apiRouter.post("/meetings/suggest-time", isAuthenticated, meetingsController.suggestMeetingTime);
+  apiRouter.post("/meetings/detect-conflicts", isAuthenticated, meetingsController.detectMeetingConflicts);
 
   // Certificate routes
   apiRouter.get("/certificates", isAuthenticated, certificatesController.getCertificates);
