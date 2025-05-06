@@ -1,0 +1,43 @@
+User@DESKTOP-QOBLJMO MINGW64 /d/Personal/JLU/Capstone/masters/VisualSourcer (main)
+$ node fix-local-dev.js
+file:///D:/Personal/JLU/Capstone/masters/VisualSourcer/fix-local-dev.js:1
+const fs = require('fs');
+           ^
+
+ReferenceError: require is not defined in ES module scope, you can use import instead
+This file is being treated as an ES module because it has a '.js' file extension and 'D:\Personal\JLU\Capstone\masters\VisualSourcer\package.json' contains "type": "module". To treat it as a CommonJS scri
+pt, rename it to use the '.cjs' file extension.
+    at file:///D:/Personal/JLU/Capstone/masters/VisualSourcer/fix-local-dev.js:1:12
+    at ModuleJob.run (node:internal/modules/esm/module_job:217:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)
+    at async loadESM (node:internal/process/esm_loader:34:7)
+    at async handleMainPromise (node:internal/modules/run_main:66:12)
+
+Node.js v20.9.0
+
+User@DESKTOP-QOBLJMO MINGW64 /d/Personal/JLU/Capstone/masters/VisualSourcer (main)
+$ npm run dev
+
+> rest-express@1.0.0 dev
+> tsx server/index.ts
+
+OpenAI API initialized successfully
+OpenAI API initialized successfully in analytics controller
+node:internal/errors:497
+    ErrorCaptureStackTrace(err);
+    ^
+
+TypeError [ERR_INVALID_ARG_TYPE]: The "paths[0]" argument must be of type string. Received undefined
+    at __node_internal_captureLargerStackTrace (node:internal/errors:497:5)
+    at new NodeError (node:internal/errors:406:5)
+    at validateString (node:internal/validators:162:11)
+    at Object.resolve (node:path:171:9)
+    at <anonymous> (d:\Personal\JLU\Capstone\masters\VisualSourcer\vite.config.ts:21:19)
+    at ModuleJob.run (node:internal/modules/esm/module_job:217:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)
+    at async loadESM (node:internal/process/esm_loader:34:7)
+    at async handleMainPromise (node:internal/modules/run_main:66:12) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+
+Node.js v20.9.0

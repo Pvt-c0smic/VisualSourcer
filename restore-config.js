@@ -1,4 +1,10 @@
-const fs = require('fs');
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+// Get current filename and directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Restore the original Replit configuration
 if (fs.existsSync('./vite.config.ts.backup')) {
