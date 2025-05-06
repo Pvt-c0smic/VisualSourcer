@@ -4,8 +4,18 @@ import { eq, and, desc, lte, gte, sql } from 'drizzle-orm';
 import { programs, skillSets, users, programEnrollments, quizAttempts, quizzes } from '@shared/schema';
 import OpenAI from 'openai';
 
-// Initialize OpenAI API client
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Initialize OpenAI API client with optional API key
+let openai: OpenAI | null = null;
+try {
+  if (process.env.OPENAI_API_KEY) {
+    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    console.log("OpenAI API initialized successfully in analytics controller");
+  } else {
+    console.warn("OPENAI_API_KEY not provided, AI analytics features will be limited");
+  }
+} catch (error) {
+  console.error("Failed to initialize OpenAI API in analytics controller:", error);
+}
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const DEFAULT_MODEL = "gpt-4o";
 
@@ -460,6 +470,11 @@ Return the predictions as a JSON array with objects containing:
 - recommendedActions (array of strings)
 `;
 
+    // Check if OpenAI API is available
+    if (!openai) {
+      throw new Error('OpenAI API not initialized');
+    }
+    
     // Call OpenAI API
     const response = await openai.chat.completions.create({
       model: DEFAULT_MODEL,
@@ -706,6 +721,11 @@ Return the recommendations as a JSON object with the following structure:
 
 `;
 
+    // Check if OpenAI API is available
+    if (!openai) {
+      throw new Error('OpenAI API not initialized');
+    }
+    
     // Call OpenAI API
     const response = await openai.chat.completions.create({
       model: DEFAULT_MODEL,
