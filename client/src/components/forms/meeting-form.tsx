@@ -71,6 +71,7 @@ import {
 } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -179,7 +180,7 @@ export function MeetingForm({ meetingId }: MeetingFormProps = {}) {
   });
 
   // Set form values when meeting data is loaded (for editing)
-  React.useEffect(() => {
+  useEffect(() => {
     if (meeting && meetingId) {
       // Create participant settings from meeting participants
       const participantSettings = meeting.participants.map(participant => ({
@@ -226,7 +227,7 @@ export function MeetingForm({ meetingId }: MeetingFormProps = {}) {
         title: "Success",
         description: "Meeting scheduled successfully.",
       });
-      setLocation("/meetings");
+      navigate("/meetings");
     },
     onError: (error: Error) => {
       toast({
@@ -255,7 +256,7 @@ export function MeetingForm({ meetingId }: MeetingFormProps = {}) {
         title: "Success",
         description: "Meeting updated successfully.",
       });
-      setLocation("/meetings");
+      navigate("/meetings");
     },
     onError: (error: Error) => {
       toast({
@@ -1185,7 +1186,7 @@ export function MeetingForm({ meetingId }: MeetingFormProps = {}) {
           <Button
             type="button"
             variant="outline"
-            onClick={() => setLocation("/meetings")}
+            onClick={() => navigate("/meetings")}
           >
             Cancel
           </Button>
