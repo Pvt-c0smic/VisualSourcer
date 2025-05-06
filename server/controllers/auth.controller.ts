@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { Strategy as LocalStrategy } from "passport-local";
-import { PassportStatic } from "passport";
+import passport, { PassportStatic } from "passport";
 import { db } from "@db";
 import { users, insertUserSchema } from "@shared/schema";
 import { eq } from "drizzle-orm";
