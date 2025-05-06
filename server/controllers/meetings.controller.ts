@@ -121,7 +121,10 @@ export async function createMeeting(req: Request, res: Response) {
       );
       
       // Add creator as organizer
-      await storage.addMeetingParticipant(newMeeting.id, user.id, "Organizer");
+      await storage.addMeetingParticipant(newMeeting.id, user.id, {
+        role: "Organizer",
+        requiredAttendance: true
+      });
       
       // Send meeting invitations
       try {
@@ -214,8 +217,15 @@ export async function updateMeeting(req: Request, res: Response) {
       
       // Add new participants
       await Promise.all(
-        req.body.participants.map(async (participantId: number) => {
-          return storage.addMeetingParticipant(meetingId, participantId, "Attendee");
+        req.body.participants.map(async (participant: any) => {
+          const participantId = typeof participant === 'number' ? participant : participant.userId;
+          const participantData = {
+            role: typeof participant === 'number' ? "Attendee" : (participant.role || "Attendee"),
+            stakeholderType: typeof participant === 'number' ? undefined : participant.stakeholderType,
+            requiredAttendance: typeof participant === 'number' ? true : (participant.requiredAttendance !== undefined ? participant.requiredAttendance : true)
+          };
+          
+          return storage.addMeetingParticipant(meetingId, participantId, participantData);
         })
       );
     }
@@ -294,6 +304,7 @@ export async function respondToMeeting(req: Request, res: Response) {
     
     const responseSchema = z.object({
       status: z.enum(["Confirmed", "Declined"]),
+      responseMessage: z.string().optional(),
     });
     
     const validatedData = responseSchema.parse(req.body);
@@ -307,8 +318,12 @@ export async function respondToMeeting(req: Request, res: Response) {
       return res.status(404).json({ message: "You are not a participant in this meeting" });
     }
     
-    // Update participant status
-    await storage.updateMeetingParticipantStatus(participant.id, validatedData.status);
+    // Update participant status and include response message if provided
+    await storage.updateMeetingParticipantStatus(
+      participant.id, 
+      validatedData.status,
+      validatedData.responseMessage
+    );
     
     res.json({ message: `Meeting invitation ${validatedData.status.toLowerCase()}` });
   } catch (error) {
@@ -322,6 +337,66 @@ export async function respondToMeeting(req: Request, res: Response) {
 }
 
 // Suggest meeting time using AI
+// Update a meeting participant's details
+export async function updateMeetingParticipant(req: Request, res: Response) {
+  try {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const { meetingId, participantId } = req.params;
+    const meetingIdNum = parseInt(meetingId, 10);
+    const participantIdNum = parseInt(participantId, 10);
+    
+    if (isNaN(meetingIdNum) || isNaN(participantIdNum)) {
+      return res.status(400).json({ message: "Invalid meeting or participant ID" });
+    }
+    
+    const meeting = await storage.getMeetingById(meetingIdNum);
+    
+    if (!meeting) {
+      return res.status(404).json({ message: "Meeting not found" });
+    }
+    
+    // Check if user has permission to update this meeting's participants
+    const user = req.user as any;
+    if (user.role !== 'admin' && meeting.createdById !== user.id) {
+      return res.status(403).json({ message: "You don't have permission to update this meeting's participants" });
+    }
+    
+    const updateSchema = z.object({
+      role: z.string().optional(),
+      status: z.enum(["Pending", "Confirmed", "Declined"]).optional(),
+      stakeholderType: z.string().optional(),
+      responseMessage: z.string().optional(),
+      attendance: z.enum(["Present", "Absent", "Excused", "Late"]).optional(),
+      requiredAttendance: z.boolean().optional(),
+      contributionNotes: z.string().optional(),
+    });
+    
+    const validatedData = updateSchema.parse(req.body);
+    
+    // Update participant details
+    const updatedParticipant = await storage.updateMeetingParticipantDetails(
+      participantIdNum, 
+      validatedData
+    );
+    
+    if (!updatedParticipant) {
+      return res.status(404).json({ message: "Participant not found" });
+    }
+    
+    res.json(updatedParticipant);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ errors: error.errors });
+    }
+    
+    console.error("Error updating meeting participant:", error);
+    res.status(500).json({ message: "Failed to update meeting participant" });
+  }
+}
+
 export async function suggestMeetingTime(req: Request, res: Response) {
   try {
     if (!req.isAuthenticated() || !req.user) {
