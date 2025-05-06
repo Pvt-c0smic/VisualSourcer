@@ -18,6 +18,7 @@ import CreateProgram from "@/pages/create-program";
 import CreateMeeting from "@/pages/create-meeting";
 import UserManagement from "@/pages/user-management";
 import Analytics from "@/pages/analytics";
+import SkillsAnalytics from "@/pages/skills-analytics";
 import Profile from "@/pages/profile";
 
 function Router() {
@@ -35,6 +36,7 @@ function Router() {
       <Route path="/create-meeting" component={CreateMeeting} />
       <Route path="/users" component={UserManagement} />
       <Route path="/analytics" component={Analytics} />
+      <Route path="/skills-analytics" component={SkillsAnalytics} />
       <Route path="/profile" component={Profile} />
       
       {/* Fallback to 404 */}

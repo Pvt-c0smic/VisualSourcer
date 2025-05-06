@@ -15,6 +15,8 @@ import {
   Award,
   LogOut,
   User,
+  LineChart,
+  TrendingUp,
 } from "lucide-react";
 import { useTheme } from "@/components/ui/theme-provider";
 import { Button } from "@/components/ui/button";
@@ -66,6 +68,12 @@ export function Sidebar({ className }: SidebarProps) {
               icon={<BarChart3 className="w-6 h-6" />}
               label="Analytics"
               active={isActive("/analytics")}
+            />
+            <NavLink
+              href="/skills-analytics"
+              icon={<TrendingUp className="w-6 h-6" />}
+              label="Skills Analytics"
+              active={isActive("/skills-analytics")}
             />
           </div>
         )}
@@ -126,6 +134,12 @@ export function Sidebar({ className }: SidebarProps) {
               icon={<Award className="w-6 h-6" />}
               label="My Certificates"
               active={isActive("/my-certificates")}
+            />
+            <NavLink
+              href="/skills-analytics"
+              icon={<LineChart className="w-6 h-6" />}
+              label="My Skills"
+              active={isActive("/skills-analytics")}
             />
           </div>
         )}
