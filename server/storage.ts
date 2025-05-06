@@ -3,7 +3,7 @@ import { eq, gt, count, and, sql, or, desc, not, isNull } from "drizzle-orm";
 import { 
   users, programs, certificates, meetings, events,
   programEnrollments, certificateTemplates, meetingParticipants,
-  eventParticipants
+  eventParticipants, skillSets
 } from "@shared/schema";
 
 export const storage = {
@@ -73,8 +73,93 @@ export const storage = {
     return updatedUser;
   },
   
-  getAllUsers: async () => {
-    return await db.query.users.findMany();
+  getAllUsers: async (role?: string, search?: string) => {
+    // Base query
+    let query = db.select().from(users);
+    
+    // Apply role filter if provided
+    if (role) {
+      query = query.where(eq(users.role, role));
+    }
+    
+    // Apply search filter if provided
+    if (search && search.trim() !== '') {
+      const searchTerm = `%${search.toLowerCase()}%`;
+      query = query.where(
+        or(
+          sql`LOWER(${users.name}) LIKE ${searchTerm}`,
+          sql`LOWER(${users.username}) LIKE ${searchTerm}`,
+          sql`LOWER(${users.email}) LIKE ${searchTerm}`,
+          sql`LOWER(${users.unit}) LIKE ${searchTerm}`
+        )
+      );
+    }
+    
+    // Execute the query
+    return await query;
+  },
+  
+  // Skill set functions
+  getAllSkillSets: async () => {
+    return await db.query.skillSets.findMany({
+      orderBy: [
+        sql`${skillSets.category} ASC`,
+        sql`${skillSets.level} ASC`,
+        sql`${skillSets.name} ASC`
+      ]
+    });
+  },
+  
+  getSkillSetById: async (skillSetId: number) => {
+    return await db.query.skillSets.findFirst({
+      where: eq(skillSets.id, skillSetId)
+    });
+  },
+  
+  getSkillSetsByCategory: async (category: string) => {
+    return await db.query.skillSets.findMany({
+      where: eq(skillSets.category, category),
+      orderBy: [
+        sql`${skillSets.level} ASC`,
+        sql`${skillSets.name} ASC`
+      ]
+    });
+  },
+  
+  getSkillSetCategories: async () => {
+    const result = await db.select({ category: skillSets.category })
+      .from(skillSets)
+      .groupBy(skillSets.category)
+      .orderBy(skillSets.category);
+    
+    return result.map(item => item.category);
+  },
+  
+  updateUserSkillSets: async (userId: number, skillSetIds: number[]) => {
+    // Get the skill sets for the given IDs
+    const selectedSkillSets = await db.query.skillSets.findMany({
+      where: sql`${skillSets.id} IN (${skillSetIds.length > 0 ? skillSetIds : [0]})`
+    });
+    
+    // Map the skill sets to the format stored in the user's skillSets field
+    const userSkillSets = selectedSkillSets.map(skillSet => ({
+      id: skillSet.id,
+      name: skillSet.name,
+      category: skillSet.category, 
+      level: skillSet.level,
+      description: skillSet.description
+    }));
+    
+    // Update the user with the new skill sets
+    const [updatedUser] = await db.update(users)
+      .set({
+        skillSets: userSkillSets,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+      
+    return updatedUser;
   },
 
   // Program functions

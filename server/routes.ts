@@ -15,6 +15,7 @@ import * as meetingsController from "./controllers/meetings.controller";
 import * as certificatesController from "./controllers/certificates.controller";
 import * as schedulesController from "./controllers/schedules.controller";
 import * as usersController from "./controllers/users.controller";
+import * as skillsetsController from "./controllers/skillsets.controller";
 
 // Middleware
 import { isAuthenticated, isAdmin, isTrainer } from "./middleware/auth";
@@ -100,6 +101,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/events", isAuthenticated, schedulesController.createEvent);
   apiRouter.put("/events/:id", isAuthenticated, schedulesController.updateEvent);
   apiRouter.delete("/events/:id", isAuthenticated, schedulesController.deleteEvent);
+
+  // Skill Set routes
+  apiRouter.get("/skillsets", isAuthenticated, skillsetsController.getSkillSets);
+  apiRouter.get("/skillsets/categories", isAuthenticated, skillsetsController.getSkillSetCategories);
+  apiRouter.get("/skillsets/:id", isAuthenticated, skillsetsController.getSkillSetById);
+  apiRouter.put("/users/:id/skillsets", isAuthenticated, skillsetsController.updateUserSkillSets);
 
   // Dashboard routes
   apiRouter.get("/dashboard/stats", isAuthenticated, async (req, res) => {
